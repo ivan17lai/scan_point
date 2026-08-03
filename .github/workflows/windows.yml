@@ -1,4 +1,5 @@
-# Builds the Windows target on every push.
+# Builds the Windows target on every push, and publishes a downloadable
+# release when a version tag is pushed.
 #
 # This exists because the machine this project is developed on is a Mac, and
 # Windows cannot be cross-compiled from macOS — the native half (the low-level
@@ -7,14 +8,19 @@
 # runner template sets /W4 /WX, so any warning in that C++ fails the build,
 # which is exactly the signal wanted here.
 #
-# The release artifact is downloadable from the run page, so a station laptop
-# can be provisioned without anyone building locally.
+# Two ways to get the binary out, for two different audiences:
+#   - Build artifact: attached to every run, but GitHub requires the downloader
+#     to be signed in, even on a public repository.
+#   - Release asset: created on a `v*` tag, downloadable by anyone with the
+#     link and no account at all. This is the one to hand to a marshal who is
+#     about to carry a laptop up a hill.
 
 name: Windows
 
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -22,8 +28,13 @@ jobs:
   build:
     runs-on: windows-latest
 
+    permissions:
+      # Needed by `gh release create` in the publish step below. If that step
+      # ever fails with 403, check Settings → Actions → Workflow permissions.
+      contents: write
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: subosito/flutter-action@v2
         with:
@@ -49,16 +60,40 @@ jobs:
       - name: Build release
         run: flutter build windows --release
 
-      - name: Show build output
+      - name: Check build output
+        shell: pwsh
         run: |
           Get-ChildItem build/windows/x64/runner/Release
           if (-not (Test-Path build/windows/x64/runner/Release/scan_point.exe)) {
             throw "scan_point.exe not found — check BINARY_NAME in windows/CMakeLists.txt"
           }
-        shell: pwsh
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: scan_point-windows-x64
           path: build/windows/x64/runner/Release/
           if-no-files-found: error
+
+      - name: Package for release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path build/windows/x64/runner/Release/* `
+            -DestinationPath "scan_point-windows-x64-$env:GITHUB_REF_NAME.zip"
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Notes live in a file rather than inline: a PowerShell here-string
+          # treats the backtick as an escape character, which fights with
+          # Markdown, and its terminator is column-sensitive inside a YAML
+          # block. Keeping them separate also means the text can be edited
+          # without touching CI.
+          gh release create "$env:GITHUB_REF_NAME" `
+            "scan_point-windows-x64-$env:GITHUB_REF_NAME.zip" `
+            --title "scan_point $env:GITHUB_REF_NAME" `
+            --notes-file .github/release-notes.md

@@ -9,9 +9,27 @@ App 自己能做到的鎖定都寫在程式裡了(全螢幕、永遠置頂、擋
 
 ## 1. 取得執行檔
 
-**不用自己編。** 每次 push 到 `main`,GitHub Actions 都會在 Windows runner 上建置 release
-版本。到 repo 的 Actions 頁面挑一個綠色的 run,下載 `scan_point-windows-x64` 這個 artifact,
-解壓縮就是完整的程式資料夾,**不需要安裝程式**,整個資料夾複製到現場機器即可。
+**不用自己編。** 兩個管道:
+
+**Releases(推薦,不需要 GitHub 帳號)**
+
+[Releases 頁面](https://github.com/ivan17lai/scan_point/releases)下載 zip,任何人拿到連結
+都能下載。要發一版:
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+推 tag 之後 CI 會自動建置並把 zip 掛上去。
+
+**Actions artifact(每次 push 都有,但需要登入)**
+
+到 [Actions 頁面](https://github.com/ivan17lai/scan_point/actions)挑一個綠色的 run,在
+**run 摘要頁最下方**的 Artifacts 區塊下載 `scan_point-windows-x64`。注意 artifact 即使在
+公開 repo 也**必須登入 GitHub 才能下載**,匿名訪客看得到名稱但沒有下載按鈕 —— 要給沒有帳號的
+工作人員,用 Releases。
+
+兩者內容相同:解壓縮就是完整的程式資料夾,**不需要安裝程式**,整個資料夾複製到現場機器即可。
 
 要自己編的話,在 Windows 機器上(不是 mac):
 
