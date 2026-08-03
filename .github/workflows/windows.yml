@@ -60,12 +60,42 @@ jobs:
       - name: Build release
         run: flutter build windows --release
 
+      - name: Bundle the Visual C++ runtime
+        shell: pwsh
+        run: |
+          # Flutter does not ship the MSVC runtime with a Windows build. A
+          # developer machine and this runner both have it because Visual
+          # Studio installed it, so the gap only shows up on a clean machine —
+          # as "MSVCP140.dll is missing", after the folder has already been
+          # carried up a hill. Microsoft permits redistributing these DLLs
+          # next to the application, which is what keeps "unzip and run" true.
+          $crt = Get-ChildItem `
+            -Path "C:\Program Files*\Microsoft Visual Studio\*\*\VC\Redist\MSVC\*\x64\Microsoft.VC*.CRT" `
+            -Directory -ErrorAction SilentlyContinue |
+            Sort-Object FullName | Select-Object -Last 1
+          if (-not $crt) {
+            throw "找不到 VC++ redistributable 資料夾,無法打包執行階段"
+          }
+          Write-Host "使用: $($crt.FullName)"
+          Copy-Item "$($crt.FullName)\*.dll" -Destination build/windows/x64/runner/Release/ -Force
+
       - name: Check build output
         shell: pwsh
         run: |
-          Get-ChildItem build/windows/x64/runner/Release
-          if (-not (Test-Path build/windows/x64/runner/Release/scan_point.exe)) {
-            throw "scan_point.exe not found — check BINARY_NAME in windows/CMakeLists.txt"
+          $release = "build/windows/x64/runner/Release"
+          Get-ChildItem $release
+          # Anything missing here produces a zip that fails only on the target
+          # machine, so each one is checked rather than assumed.
+          $required = @(
+            "scan_point.exe",
+            "flutter_windows.dll",
+            "msvcp140.dll",
+            "vcruntime140.dll",
+            "vcruntime140_1.dll"
+          )
+          $missing = $required | Where-Object { -not (Test-Path "$release/$_") }
+          if ($missing) {
+            throw "缺少必要檔案: $($missing -join ', ')"
           }
 
       - uses: actions/upload-artifact@v7

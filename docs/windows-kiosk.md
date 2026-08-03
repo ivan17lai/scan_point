@@ -31,6 +31,10 @@ git tag v1.0.0 && git push origin v1.0.0
 
 兩者內容相同:解壓縮就是完整的程式資料夾,**不需要安裝程式**,整個資料夾複製到現場機器即可。
 
+zip 內含 Visual C++ 執行階段(`msvcp140.dll`、`vcruntime140.dll`、`vcruntime140_1.dll`)。
+Flutter 預設不會打包這些,而乾淨的 Windows 沒有它們 —— 少了就會在啟動時跳「找不到
+MSVCP140.dll」。現場機器**不需要另外安裝 VC++ Redistributable**。
+
 要自己編的話,在 Windows 機器上(不是 mac):
 
 ```bash
