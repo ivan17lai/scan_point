@@ -8,6 +8,7 @@ import '../app_controller.dart';
 import '../audio/tone_player.dart';
 import '../model/station_config.dart';
 import '../platform/kiosk_lock.dart';
+import '../storage/event_log.dart';
 
 /// Operator surface behind the PIN: station identity, counts, export, upload,
 /// and the only way out of the app.
@@ -81,8 +82,21 @@ class _AdminScreenState extends State<AdminScreen> {
     setState(() => _busy = true);
     try {
       final dir = await widget.controller.store.exportAll();
+      await widget.controller.events.record(
+        EventType.exportRun,
+        stationId: widget.controller.config.stationId,
+        detail: {
+          'target': dir.path,
+          'records': widget.controller.store.totalLines,
+        },
+      );
       setState(() => _status = '已匯出到 ${dir.path}');
     } catch (e) {
+      await widget.controller.events.record(
+        EventType.exportRun,
+        stationId: widget.controller.config.stationId,
+        detail: {'error': '$e'},
+      );
       setState(() => _status = '匯出失敗:$e');
     } finally {
       setState(() => _busy = false);
@@ -117,12 +131,27 @@ class _AdminScreenState extends State<AdminScreen> {
           )
           .timeout(const Duration(seconds: 30));
       final ok = response.statusCode >= 200 && response.statusCode < 300;
+      await widget.controller.events.record(
+        EventType.uploadRun,
+        stationId: widget.controller.config.stationId,
+        detail: {
+          // Host only: the full URL can carry a query-string secret.
+          'host': Uri.parse(url).host,
+          'status': response.statusCode,
+          'records': widget.controller.store.totalLines,
+        },
+      );
       setState(
         () => _status = ok
             ? '上傳成功(${widget.controller.store.totalLines} 筆)'
             : '上傳失敗:HTTP ${response.statusCode}',
       );
     } catch (e) {
+      await widget.controller.events.record(
+        EventType.uploadRun,
+        stationId: widget.controller.config.stationId,
+        detail: {'host': Uri.tryParse(url)?.host, 'error': '$e'},
+      );
       setState(() => _status = '上傳失敗:$e');
     } finally {
       setState(() => _busy = false);
@@ -314,7 +343,19 @@ class _AdminScreenState extends State<AdminScreen> {
           ]),
           const SizedBox(height: 24),
           _section('儲存位置', [
-            _kv('① 主要紀錄(固定)', store.primaryDir.path),
+            _kv('① 程式資料夾(固定)', store.primaryDir.path),
+            Padding(
+              padding: const EdgeInsets.only(top: 2, bottom: 10),
+              child: Text(
+                '含 scans.jsonl(掃描成功)、scans-<日期>.csv(同上,可直接開)、'
+                'events.jsonl(完整操作紀錄:失敗讀取、管理員登入、設定變更)',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 13,
+                  height: 1.5,
+                ),
+              ),
+            ),
             _kv('② 鏡像備份(固定)', store.mirrorDir.path),
             Padding(
               padding: const EdgeInsets.only(top: 6, bottom: 16),
@@ -330,7 +371,9 @@ class _AdminScreenState extends State<AdminScreen> {
             ),
             _folderRow(
               label: '③ 額外備份(例如隨身碟)',
-              path: store.extraDir?.path ?? '未設定 — 只寫上面兩份',
+              path:
+                  store.extraDirFor(c.config.stationId)?.path ??
+                  '未設定 — 只寫上面兩份',
               isCustom: c.config.extraDir.trim().isNotEmpty,
               onPick: () => _pickFolder(extra: true),
               onReset: () => _resetFolder(extra: true),
@@ -340,7 +383,9 @@ class _AdminScreenState extends State<AdminScreen> {
               padding: const EdgeInsets.only(bottom: 16),
               child: Text(
                 '這是「多寫一份」,不會取代上面兩份 —— 隨身碟拔掉,原本的備援完全不受影響。'
-                '設定後既有紀錄會整份複製過去(含 CSV,可直接開),不是只從現在開始記。',
+                '兩種 log 都會複製,設定後既有紀錄整份寫過去,不是只從現在開始記。\n'
+                '檔案放在 <你選的資料夾>/scan_point/<站點編號>/,依站點分開,'
+                '所以同一支隨身碟可以收多台機器而不會互相覆蓋。',
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
                   fontSize: 13,

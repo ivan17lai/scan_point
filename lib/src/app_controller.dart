@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +10,7 @@ import 'model/station_config.dart';
 import 'platform/kiosk_lock.dart';
 import 'scanner/scan_decoder.dart';
 import 'storage/config_store.dart';
+import 'storage/event_log.dart';
 import 'storage/scan_store.dart';
 
 /// What the runner-facing screen is showing.
@@ -30,7 +32,13 @@ class KioskTiming {
 }
 
 class AppController extends ChangeNotifier {
-  AppController._(this._store, this._configStore, this._tones, this._config) {
+  AppController._(
+    this._store,
+    this._configStore,
+    this._tones,
+    this._config,
+    this.events,
+  ) {
     _decoder = ScanDecoder(
       onFrameStart: _handleFrameStart,
       onFrame: _handleFrame,
@@ -39,9 +47,12 @@ class AppController extends ChangeNotifier {
     HardwareKeyboard.instance.addHandler(_onKey);
   }
 
-  // Not final: choosing a different mirror folder reopens the store in place.
+  // Not final: choosing an extra backup folder reopens the store in place.
   ScanStore _store;
   final ConfigStore _configStore;
+
+  /// Everything the software did, as opposed to what the runners did.
+  final EventLog events;
   final TonePlayer _tones;
 
   late final ScanDecoder _decoder;
@@ -81,15 +92,38 @@ class AppController extends ChangeNotifier {
   bool exitRequested = false;
 
   static Future<AppController> create() async {
-    // Config first: it decides where the mirror and export folders live.
+    // Config first: it decides where the extra and export folders live.
     final (configStore, config) = await ConfigStore.open();
     final store = await ScanStore.open(
       extraDir: config.extraDir,
       exportOverride: config.exportDir,
     );
     final tones = await TonePlayer.create();
-    return AppController._(store, configStore, tones, config);
+    final events = EventLog(_eventTargets(store, config.stationId));
+
+    final controller = AppController._(
+      store,
+      configStore,
+      tones,
+      config,
+      events,
+    );
+    await events.record(
+      EventType.appStart,
+      stationId: config.stationId,
+      detail: {
+        'station_name': config.stationName,
+        'records_loaded': store.totalLines,
+        'config_source': configStore.loadedFrom,
+      },
+    );
+    return controller;
   }
+
+  static List<Directory> _eventTargets(ScanStore store, String stationId) => [
+    store.primaryDir,
+    ?store.extraDirFor(stationId),
+  ];
 
   // --- keyboard ------------------------------------------------------------
 
@@ -138,6 +172,11 @@ class AppController extends ChangeNotifier {
     if (generation != _generation) return;
 
     if (outcome.failed) {
+      events.record(
+        EventType.writeError,
+        stationId: _config.stationId,
+        detail: {'card': frame.payload, 'error': _store.lastWriteError},
+      );
       _settle(KioskState.error, fault: ScanFault.storageFailure);
       return;
     }
@@ -145,11 +184,34 @@ class AppController extends ChangeNotifier {
     _cardId = outcome.record!.cardId;
     _recordedAt = outcome.record!.at;
     _firstSeenAt = outcome.firstSeenAt;
+
+    events.record(
+      outcome.isDuplicate ? EventType.scanDuplicate : EventType.scanOk,
+      stationId: _config.stationId,
+      detail: {
+        'seq': outcome.record!.sequence,
+        'card': outcome.record!.cardId,
+        'terminator': frame.terminator.name,
+        if (frame.raw != outcome.record!.cardId) 'raw': frame.raw,
+        'first_seen_at': ?outcome.firstSeenAt?.toIso8601String(),
+        // A write that only partly succeeded still counts as recorded, but the
+        // trail should say which copy was missed.
+        'write_warning': ?_store.lastWriteError,
+      },
+    );
+
     _settle(outcome.isDuplicate ? KioskState.duplicate : KioskState.success);
   }
 
   Future<void> _handleFault(ScanFault fault) async {
     final generation = _generation;
+    // Failed reads are the whole reason for keeping an operational log: a
+    // missing punch is usually explained by one of these, not by the successes.
+    events.record(
+      EventType.scanFail,
+      stationId: _config.stationId,
+      detail: {'code': fault.code, 'reason': fault.name},
+    );
     await _holdScanningFloor();
     if (generation != _generation) return;
     _settle(KioskState.error, fault: fault);
@@ -211,7 +273,17 @@ class AppController extends ChangeNotifier {
   }
 
   bool submitPin(String pin) {
-    if (pin != _config.pin) return false;
+    if (pin != _config.pin) {
+      // The attempted value is never logged — only that an attempt failed, and
+      // how long it was, which is enough to tell a typo from someone probing.
+      events.record(
+        EventType.adminPinRejected,
+        stationId: _config.stationId,
+        detail: {'length': pin.length},
+      );
+      return false;
+    }
+    events.record(EventType.adminUnlock, stationId: _config.stationId);
     _mode = AppMode.admin;
     // Admin has text fields, so the IME is allowed to wake up here — and the
     // native keyboard block has to come off or the operator cannot Alt+Tab to
@@ -222,6 +294,9 @@ class AppController extends ChangeNotifier {
   }
 
   void returnToKiosk() {
+    if (_mode == AppMode.admin) {
+      events.record(EventType.adminExit, stationId: _config.stationId);
+    }
     _mode = AppMode.kiosk;
     _state = KioskState.idle;
     _cardId = null;
@@ -232,8 +307,27 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> updateConfig(StationConfig config) async {
+    final before = _config.toJson();
+    final after = config.toJson();
+    final changed = <String, Object?>{
+      for (final key in after.keys)
+        if (before[key] != after[key]) key: after[key],
+    };
+
     _config = config;
     await _configStore.save(config);
+
+    if (changed.isNotEmpty) {
+      // The station id is part of the event log's own path, so the targets move
+      // with it — otherwise a renamed station would keep writing its diary into
+      // the previous station's folder on the stick.
+      events.targets = _eventTargets(_store, config.stationId);
+      await events.record(
+        EventType.configChange,
+        stationId: config.stationId,
+        detail: changed,
+      );
+    }
     notifyListeners();
   }
 
@@ -261,6 +355,16 @@ class AppController extends ChangeNotifier {
     _store = reopened;
     _config = next;
     await _configStore.save(next);
+    events.targets = _eventTargets(reopened, next.stationId);
+    await events.record(
+      EventType.storageChange,
+      stationId: next.stationId,
+      detail: {
+        'extra_dir': next.extraDir.isEmpty ? '(未設定)' : next.extraDir,
+        'export_dir': next.exportDir.isEmpty ? '(預設)' : next.exportDir,
+        'seed_error': ?seedProblem,
+      },
+    );
     notifyListeners();
 
     return seedProblem == null
@@ -270,7 +374,14 @@ class AppController extends ChangeNotifier {
 
   List<ScanRecord> get recentScans => _store.recentFor(_config.stationId);
 
-  void requestExit() {
+  Future<void> requestExit() async {
+    // Awaited so the last line reaches disk before main() tears the process
+    // down — an exit that leaves no trace is exactly the one worth tracing.
+    await events.record(
+      EventType.appExit,
+      stationId: _config.stationId,
+      detail: {'records': _store.totalLines},
+    );
     exitRequested = true;
     notifyListeners();
   }

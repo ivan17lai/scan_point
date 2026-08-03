@@ -143,10 +143,19 @@ void main() {
       extra: usb,
     );
     expect(await withUsb.seedExtraCopy(), isNull);
-    expect(linesOf('${usb.path}/scans.jsonl'), hasLength(2),
-        reason: '既有紀錄要整份複製過去');
+
+    // Namespaced per station, so one stick can collect several machines.
+    final stationDir = withUsb.extraDirFor('CP3')!;
+    expect(stationDir.path, '${usb.path}/scan_point/CP3');
     expect(
-      usb.listSync().whereType<File>().any((f) => f.path.endsWith('.csv')),
+      linesOf('${stationDir.path}/scans.jsonl'),
+      hasLength(2),
+      reason: '既有紀錄要整份複製過去',
+    );
+    expect(
+      stationDir.listSync().whereType<File>().any(
+        (f) => f.path.endsWith('.csv'),
+      ),
       isTrue,
       reason: '隨身碟上要有可直接開啟的 CSV',
     );
@@ -156,7 +165,40 @@ void main() {
     // Four copies now, and the two defaults are untouched by the addition.
     expect(linesOf('${primary.path}/scans.jsonl'), hasLength(3));
     expect(linesOf('${mirror.path}/scans.jsonl'), hasLength(3));
-    expect(linesOf('${usb.path}/scans.jsonl'), hasLength(3));
+    expect(linesOf('${stationDir.path}/scans.jsonl'), hasLength(3));
+  });
+
+  test('two stations sharing one stick do not overwrite each other', () async {
+    final usb = Directory('${root.path}/usb');
+
+    Future<void> runStation(String station) async {
+      final store = await ScanStore.openAt(
+        primary: Directory('${root.path}/$station-primary'),
+        mirror: Directory('${root.path}/$station-mirror'),
+        export: export,
+        extra: usb,
+      );
+      await store.record(
+        cardId: 'CARD$station',
+        stationId: station,
+        stationName: station,
+        terminator: FrameTerminator.semicolon,
+        raw: 'CARD$station',
+      );
+      await store.seedExtraCopy();
+    }
+
+    await runStation('CP3');
+    await runStation('CP4');
+
+    expect(linesOf('${usb.path}/scan_point/CP3/scans.jsonl'), hasLength(1));
+    expect(linesOf('${usb.path}/scan_point/CP4/scans.jsonl'), hasLength(1));
+  });
+
+  test('a station id that is not a legal folder name is folded', () {
+    expect(ScanStore.safeName('CP/3'), 'CP_3');
+    expect(ScanStore.safeName('  '), 'unknown');
+    expect(ScanStore.safeName('終點:A'), '終點_A');
   });
 
   test('pulling the stick out leaves the default copies intact', () async {

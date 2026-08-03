@@ -63,18 +63,30 @@ class ScanStore {
   Directory get exportDir => _exportDir;
   Directory? get extraDir => _extraDir;
 
-  /// Every folder the log is appended to, in write order.
-  List<Directory> get _logTargets => [_primaryDir, _mirrorDir, ?_extraDir];
+  /// Where the extra copy for [stationId] goes, or null when none is set.
+  ///
+  /// One USB stick is very likely to collect several machines, so the extra
+  /// copy is namespaced per station. Without this the second machine plugged in
+  /// would overwrite the first one's log — [seedExtraCopy] rewrites files
+  /// wholesale rather than appending, so the loss would be silent and total.
+  Directory? extraDirFor(String stationId) {
+    final extra = _extraDir;
+    if (extra == null) return null;
+    return Directory('${extra.path}/scan_point/${safeName(stationId)}');
+  }
 
-  /// Folders that also get the human-readable CSV, so a stick pulled out of the
-  /// machine opens straight into a spreadsheet without any export step.
-  List<Directory> get _csvTargets => [_primaryDir, ?_extraDir];
+  /// Station ids are typed by hand and land in a path, so anything the
+  /// filesystem would object to is folded away.
+  static String safeName(String value) {
+    final cleaned = value
+        .trim()
+        .replaceAll(RegExp(r'[<>:"/\\|?*\x00-\x1F]'), '_')
+        .replaceAll(RegExp(r'[. ]+$'), '');
+    return cleaned.isEmpty ? 'unknown' : cleaned;
+  }
 
-  String _labelFor(Directory dir) => dir == _primaryDir
-      ? '主檔'
-      : dir == _mirrorDir
-      ? '鏡像'
-      : '額外備份';
+  /// The two copies the machine owns and reads back on load.
+  List<Directory> get _ownedTargets => [_primaryDir, _mirrorDir];
 
   /// Scans recorded at [stationId], duplicates excluded.
   int countFor(String stationId) =>
@@ -145,32 +157,39 @@ class ScanStore {
   /// Writes the whole log into the extra folder, so a stick plugged in halfway
   /// through the event ends up holding the event, not just the rest of it.
   Future<String?> seedExtraCopy() async {
-    final extra = _extraDir;
-    if (extra == null) return null;
+    if (_extraDir == null) return null;
     try {
-      await extra.create(recursive: true);
-
-      final jsonl = StringBuffer();
-      // The CSV is split per day, so the records have to be regrouped rather
-      // than streamed straight out.
-      final csvByDay = <String, StringBuffer>{};
+      // Records are grouped by station because each station owns a folder on
+      // the stick, and by day because the CSV is split per day.
+      final byStation = <String, List<ScanRecord>>{};
       for (final record in _records) {
-        jsonl.writeln(jsonEncode(record.toJson()));
-        csvByDay
-            .putIfAbsent(
-              _dayStamp(record.at),
-              () => StringBuffer('${ScanRecord.csvHeader}\n'),
-            )
-            .writeln(record.toCsvRow());
+        byStation.putIfAbsent(record.stationId, () => []).add(record);
       }
 
-      await File(
-        '${extra.path}/$_logName',
-      ).writeAsString(jsonl.toString(), flush: true);
-      for (final day in csvByDay.entries) {
+      for (final station in byStation.entries) {
+        final dir = extraDirFor(station.key)!;
+        await dir.create(recursive: true);
+
+        final jsonl = StringBuffer();
+        final csvByDay = <String, StringBuffer>{};
+        for (final record in station.value) {
+          jsonl.writeln(jsonEncode(record.toJson()));
+          csvByDay
+              .putIfAbsent(
+                _dayStamp(record.at),
+                () => StringBuffer('${ScanRecord.csvHeader}\n'),
+              )
+              .writeln(record.toCsvRow());
+        }
+
         await File(
-          '${extra.path}/scans-${day.key}.csv',
-        ).writeAsString(day.value.toString(), flush: true);
+          '${dir.path}/$_logName',
+        ).writeAsString(jsonl.toString(), flush: true);
+        for (final day in csvByDay.entries) {
+          await File(
+            '${dir.path}/scans-${day.key}.csv',
+          ).writeAsString(day.value.toString(), flush: true);
+        }
       }
       return null;
     } catch (e) {
@@ -218,7 +237,7 @@ class ScanStore {
   Future<void> _load() async {
     // Whichever copy holds the most intact records wins. That is the whole
     // reason for keeping more than one: any of them may be the survivor.
-    for (final dir in _logTargets) {
+    for (final dir in _ownedTargets) {
       final file = File('${dir.path}/$_logName');
       if (!file.existsSync()) continue;
       final loaded = <ScanRecord>[];
@@ -291,22 +310,30 @@ class ScanStore {
   Future<bool> _write(ScanRecord record) async {
     final jsonLine = '${jsonEncode(record.toJson())}\n';
     final csvDay = _dayStamp(record.at);
+    final extra = extraDirFor(record.stationId);
 
     var anyOk = false;
     final failed = <String>[];
 
-    for (final dir in _logTargets) {
+    // (folder, label, also writes the CSV)
+    final targets = <(Directory, String, bool)>[
+      (_primaryDir, '主檔', true),
+      (_mirrorDir, '鏡像', false),
+      if (extra != null) (extra, '額外備份', true),
+    ];
+
+    for (final (dir, label, withCsv) in targets) {
       try {
+        await dir.create(recursive: true);
         await File(
           '${dir.path}/$_logName',
         ).writeAsString(jsonLine, mode: FileMode.append, flush: true);
         anyOk = true;
       } catch (_) {
-        failed.add(_labelFor(dir));
+        failed.add(label);
+        continue;
       }
-    }
-
-    for (final dir in _csvTargets) {
+      if (!withCsv) continue;
       try {
         final csv = File('${dir.path}/scans-$csvDay.csv');
         final needsHeader = !csv.existsSync() || csv.lengthSync() == 0;
@@ -316,8 +343,7 @@ class ScanStore {
           flush: true,
         );
       } catch (_) {
-        final label = '${_labelFor(dir)} CSV';
-        if (!failed.contains(label)) failed.add(label);
+        failed.add('$label CSV');
       }
     }
 
