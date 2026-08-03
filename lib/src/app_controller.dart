@@ -120,8 +120,13 @@ class AppController extends ChangeNotifier {
     return controller;
   }
 
+  /// The operational log goes everywhere the scan log goes. After an event the
+  /// two are read together — a missing punch is explained by the failures and
+  /// the settings changes around it — so a copy holding only half of that is a
+  /// copy that cannot answer the question.
   static List<Directory> _eventTargets(ScanStore store, String stationId) => [
     store.primaryDir,
+    store.mirrorDir,
     ?store.extraDirFor(stationId),
   ];
 

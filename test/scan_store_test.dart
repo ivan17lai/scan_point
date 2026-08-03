@@ -46,12 +46,16 @@ void main() {
     expect(mirrorLines, hasLength(1));
     expect(jsonDecode(primaryLines.first)['card'], 'A7F3C210');
 
-    final csv = primary.listSync().whereType<File>().firstWhere(
-      (f) => f.path.endsWith('.csv'),
-    );
-    final csvLines = csv.readAsLinesSync();
-    expect(csvLines.first, startsWith('seq,card_id'));
-    expect(csvLines[1], contains('A7F3C210'));
+    // The mirror is a full copy, CSV included — not a partial one.
+    for (final dir in [primary, mirror]) {
+      final csv = dir.listSync().whereType<File>().firstWhere(
+        (f) => f.path.endsWith('.csv'),
+        orElse: () => throw StateError('${dir.path} 少了 CSV'),
+      );
+      final csvLines = csv.readAsLinesSync();
+      expect(csvLines.first, startsWith('seq,card_id'));
+      expect(csvLines[1], contains('A7F3C210'));
+    }
   });
 
   test(

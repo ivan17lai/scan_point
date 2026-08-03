@@ -318,7 +318,7 @@ class ScanStore {
     // (folder, label, also writes the CSV)
     final targets = <(Directory, String, bool)>[
       (_primaryDir, '主檔', true),
-      (_mirrorDir, '鏡像', false),
+      (_mirrorDir, '鏡像', true),
       if (extra != null) (extra, '額外備份', true),
     ];
 

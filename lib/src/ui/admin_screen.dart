@@ -358,6 +358,17 @@ class _AdminScreenState extends State<AdminScreen> {
             ),
             _kv('② 鏡像備份(固定)', store.mirrorDir.path),
             Padding(
+              padding: const EdgeInsets.only(top: 2, bottom: 10),
+              child: Text(
+                '與 ① 相同的三種檔案 —— 完整的一份副本,不是只有掃描紀錄。',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 13,
+                  height: 1.5,
+                ),
+              ),
+            ),
+            Padding(
               padding: const EdgeInsets.only(top: 6, bottom: 16),
               child: Text(
                 '這兩份的位置不開放更改 —— 它們必須永遠掛載、永遠可寫。'
