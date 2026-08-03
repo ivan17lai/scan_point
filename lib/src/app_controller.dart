@@ -84,7 +84,7 @@ class AppController extends ChangeNotifier {
     // Config first: it decides where the mirror and export folders live.
     final (configStore, config) = await ConfigStore.open();
     final store = await ScanStore.open(
-      mirrorOverride: config.mirrorDir,
+      extraDir: config.extraDir,
       exportOverride: config.exportDir,
     );
     final tones = await TonePlayer.create();
@@ -237,38 +237,35 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Points the mirror and/or export folder somewhere else.
+  /// Sets the extra backup folder and/or the export folder.
   ///
   /// Returns null on success, or a message for the operator. The folder is
-  /// proved writable before anything is changed, and the mirror is rewritten in
-  /// full afterwards so the new location holds the whole log rather than only
-  /// what gets scanned from this moment on.
-  Future<String?> changeStorage({String? mirrorDir, String? exportDir}) async {
-    final next = _config.copyWith(
-      mirrorDir: mirrorDir,
-      exportDir: exportDir,
-    );
+  /// proved writable before anything changes, and the whole log is copied into
+  /// a newly chosen extra folder so it holds the event rather than only the
+  /// part of it that happens after the stick went in.
+  Future<String?> changeStorage({String? extraDir, String? exportDir}) async {
+    final next = _config.copyWith(extraDir: extraDir, exportDir: exportDir);
 
-    for (final candidate in [next.mirrorDir, next.exportDir]) {
+    for (final candidate in [next.extraDir, next.exportDir]) {
       if (candidate.trim().isEmpty) continue;
       final problem = await ScanStore.probeWritable(candidate);
       if (problem != null) return '無法寫入 $candidate — $problem';
     }
 
     final reopened = await ScanStore.open(
-      mirrorOverride: next.mirrorDir,
+      extraDir: next.extraDir,
       exportOverride: next.exportDir,
     );
-    final rebuildProblem = await reopened.rebuildMirror();
+    final seedProblem = await reopened.seedExtraCopy();
 
     _store = reopened;
     _config = next;
     await _configStore.save(next);
     notifyListeners();
 
-    return rebuildProblem == null
+    return seedProblem == null
         ? null
-        : '位置已更新,但既有紀錄複製失敗:$rebuildProblem';
+        : '位置已更新,但既有紀錄複製失敗:$seedProblem';
   }
 
   List<ScanRecord> get recentScans => _store.recentFor(_config.stationId);

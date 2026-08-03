@@ -27,11 +27,24 @@ class ScanOutcome {
 /// half-written database page can take the whole file with it. Three copies in
 /// two directories means a lost card is recoverable by reconciliation.
 class ScanStore {
-  ScanStore._(this._primaryDir, this._mirrorDir, this._exportDir);
+  ScanStore._(
+    this._primaryDir,
+    this._mirrorDir,
+    this._exportDir,
+    this._extraDir,
+  );
 
   final Directory _primaryDir;
   final Directory _mirrorDir;
   final Directory _exportDir;
+
+  /// Optional fourth copy, chosen by the operator — typically a USB stick.
+  ///
+  /// Additive, never a redirect: the two default copies keep being written
+  /// exactly as before. Unplugging the stick therefore costs nothing that
+  /// existed before it was plugged in, which is the whole point of it being an
+  /// extra rather than a replacement.
+  final Directory? _extraDir;
 
   final List<ScanRecord> _records = <ScanRecord>[];
 
@@ -48,6 +61,20 @@ class ScanStore {
   Directory get primaryDir => _primaryDir;
   Directory get mirrorDir => _mirrorDir;
   Directory get exportDir => _exportDir;
+  Directory? get extraDir => _extraDir;
+
+  /// Every folder the log is appended to, in write order.
+  List<Directory> get _logTargets => [_primaryDir, _mirrorDir, ?_extraDir];
+
+  /// Folders that also get the human-readable CSV, so a stick pulled out of the
+  /// machine opens straight into a spreadsheet without any export step.
+  List<Directory> get _csvTargets => [_primaryDir, ?_extraDir];
+
+  String _labelFor(Directory dir) => dir == _primaryDir
+      ? '主檔'
+      : dir == _mirrorDir
+      ? '鏡像'
+      : '額外備份';
 
   /// Scans recorded at [stationId], duplicates excluded.
   int countFor(String stationId) =>
@@ -62,34 +89,36 @@ class ScanStore {
       .take(limit)
       .toList();
 
-  /// Opens the store, optionally redirecting the mirror and export folders.
+  /// Opens the store.
   ///
-  /// The primary is deliberately not redirectable — see [StationConfig.mirrorDir].
+  /// [extraDir] adds a fourth copy alongside the two defaults; it never
+  /// replaces them. [exportOverride] does redirect, because export is a
+  /// one-shot operator action with no redundancy role.
   static Future<ScanStore> open({
-    String? mirrorOverride,
+    String? extraDir,
     String? exportOverride,
   }) async {
     final support = await getApplicationSupportDirectory();
     final documents = await getApplicationDocumentsDirectory();
 
-    final primary = Directory('${support.path}/data');
-    final mirror = mirrorOverride != null && mirrorOverride.trim().isNotEmpty
-        ? Directory(mirrorOverride.trim())
-        : Directory('${documents.path}/OrienteeringSystem/mirror');
     final export = exportOverride != null && exportOverride.trim().isNotEmpty
         ? Directory(exportOverride.trim())
         : Directory('${documents.path}/OrienteeringSystem/export');
 
-    return openAt(primary: primary, mirror: mirror, export: export);
+    return openAt(
+      primary: Directory('${support.path}/data'),
+      mirror: Directory('${documents.path}/OrienteeringSystem/mirror'),
+      export: export,
+      extra: extraDir != null && extraDir.trim().isNotEmpty
+          ? Directory(extraDir.trim())
+          : null,
+    );
   }
 
-  /// Default locations, for showing the operator what "reset to default" means.
-  static Future<({String mirror, String export})> defaultDirs() async {
+  /// Default export location, for showing what "reset to default" means.
+  static Future<String> defaultExportDir() async {
     final documents = await getApplicationDocumentsDirectory();
-    return (
-      mirror: '${documents.path}/OrienteeringSystem/mirror',
-      export: '${documents.path}/OrienteeringSystem/export',
-    );
+    return '${documents.path}/OrienteeringSystem/export';
   }
 
   /// Confirms a chosen folder can actually be written to, by writing to it.
@@ -113,23 +142,46 @@ class ScanStore {
     }
   }
 
-  /// Rewrites the mirror from memory so a newly chosen folder holds the whole
-  /// log, not just what happens to be scanned from now on.
-  Future<String?> rebuildMirror() async {
+  /// Writes the whole log into the extra folder, so a stick plugged in halfway
+  /// through the event ends up holding the event, not just the rest of it.
+  Future<String?> seedExtraCopy() async {
+    final extra = _extraDir;
+    if (extra == null) return null;
     try {
-      await _mirrorDir.create(recursive: true);
-      final buffer = StringBuffer();
+      await extra.create(recursive: true);
+
+      final jsonl = StringBuffer();
+      // The CSV is split per day, so the records have to be regrouped rather
+      // than streamed straight out.
+      final csvByDay = <String, StringBuffer>{};
       for (final record in _records) {
-        buffer.writeln(jsonEncode(record.toJson()));
+        jsonl.writeln(jsonEncode(record.toJson()));
+        csvByDay
+            .putIfAbsent(
+              _dayStamp(record.at),
+              () => StringBuffer('${ScanRecord.csvHeader}\n'),
+            )
+            .writeln(record.toCsvRow());
       }
+
       await File(
-        '${_mirrorDir.path}/$_logName',
-      ).writeAsString(buffer.toString(), flush: true);
+        '${extra.path}/$_logName',
+      ).writeAsString(jsonl.toString(), flush: true);
+      for (final day in csvByDay.entries) {
+        await File(
+          '${extra.path}/scans-${day.key}.csv',
+        ).writeAsString(day.value.toString(), flush: true);
+      }
       return null;
     } catch (e) {
       return '$e';
     }
   }
+
+  static String _dayStamp(DateTime t) =>
+      '${t.year.toString().padLeft(4, '0')}-'
+      '${t.month.toString().padLeft(2, '0')}-'
+      '${t.day.toString().padLeft(2, '0')}';
 
   /// Same as [open] with the directories supplied, so tests can point at a temp
   /// folder instead of the real app-support location.
@@ -137,20 +189,25 @@ class ScanStore {
     required Directory primary,
     required Directory mirror,
     required Directory export,
+    Directory? extra,
   }) async {
-    // Only the primary is allowed to be fatal. The mirror may point at a USB
-    // stick nobody remembered to plug in, and the export folder at a network
-    // share that is down — neither is a reason to refuse to record scans at an
-    // unattended control point.
+    // Only the primary is allowed to be fatal. The extra copy may point at a
+    // USB stick nobody remembered to plug in, and the export folder at a
+    // network share that is down — neither is a reason to refuse to record
+    // scans at an unattended control point.
     await primary.create(recursive: true);
 
-    final store = ScanStore._(primary, mirror, export);
-    for (final dir in [mirror, export]) {
+    final store = ScanStore._(primary, mirror, export, extra);
+    for (final dir in [mirror, export, ?extra]) {
       try {
         await dir.create(recursive: true);
       } catch (e) {
         store.lastWriteError =
-            '${dir == mirror ? '鏡像' : '匯出'}資料夾無法使用:$e';
+            '${dir == mirror
+                ? '鏡像'
+                : dir == export
+                ? '匯出'
+                : '額外備份'}資料夾無法使用:$e';
       }
     }
 
@@ -159,9 +216,9 @@ class ScanStore {
   }
 
   Future<void> _load() async {
-    // The primary is authoritative on load; if it is missing or truncated the
-    // mirror is tried, which is the whole reason the mirror exists.
-    for (final dir in [_primaryDir, _mirrorDir]) {
+    // Whichever copy holds the most intact records wins. That is the whole
+    // reason for keeping more than one: any of them may be the survivor.
+    for (final dir in _logTargets) {
       final file = File('${dir.path}/$_logName');
       if (!file.existsSync()) continue;
       final loaded = <ScanRecord>[];
@@ -233,44 +290,38 @@ class ScanStore {
 
   Future<bool> _write(ScanRecord record) async {
     final jsonLine = '${jsonEncode(record.toJson())}\n';
-    final csvDay =
-        '${record.at.year.toString().padLeft(4, '0')}-'
-        '${record.at.month.toString().padLeft(2, '0')}-'
-        '${record.at.day.toString().padLeft(2, '0')}';
+    final csvDay = _dayStamp(record.at);
 
-    var primaryOk = false;
     var anyOk = false;
-    Object? firstError;
+    final failed = <String>[];
 
-    for (final dir in [_primaryDir, _mirrorDir]) {
+    for (final dir in _logTargets) {
       try {
         await File(
           '${dir.path}/$_logName',
         ).writeAsString(jsonLine, mode: FileMode.append, flush: true);
         anyOk = true;
-        if (dir == _primaryDir) primaryOk = true;
-      } catch (e) {
-        firstError ??= e;
+      } catch (_) {
+        failed.add(_labelFor(dir));
       }
     }
 
-    try {
-      final csv = File('${_primaryDir.path}/scans-$csvDay.csv');
-      final needsHeader = !csv.existsSync() || csv.lengthSync() == 0;
-      await csv.writeAsString(
-        '${needsHeader ? '${ScanRecord.csvHeader}\n' : ''}${record.toCsvRow()}\n',
-        mode: FileMode.append,
-        flush: true,
-      );
-    } catch (e) {
-      firstError ??= e;
+    for (final dir in _csvTargets) {
+      try {
+        final csv = File('${dir.path}/scans-$csvDay.csv');
+        final needsHeader = !csv.existsSync() || csv.lengthSync() == 0;
+        await csv.writeAsString(
+          '${needsHeader ? '${ScanRecord.csvHeader}\n' : ''}${record.toCsvRow()}\n',
+          mode: FileMode.append,
+          flush: true,
+        );
+      } catch (_) {
+        final label = '${_labelFor(dir)} CSV';
+        if (!failed.contains(label)) failed.add(label);
+      }
     }
 
-    if (firstError != null) {
-      lastWriteError = '${primaryOk ? '鏡像檔' : '主檔'}寫入異常:$firstError';
-    } else {
-      lastWriteError = null;
-    }
+    lastWriteError = failed.isEmpty ? null : '寫入失敗:${failed.join('、')}';
     // One surviving copy of the JSONL is enough to call the scan recorded; the
     // runner must not be sent away for a failure that did not lose data.
     return anyOk;

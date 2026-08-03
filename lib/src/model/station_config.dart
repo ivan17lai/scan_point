@@ -10,20 +10,19 @@ class StationConfig {
     this.pin = defaultPin,
     this.uploadUrl = '',
     this.uploadToken = '',
-    this.mirrorDir = '',
+    this.extraDir = '',
     this.exportDir = '',
   });
 
-  /// Where the redundant copy of the log is written. Empty means the default
-  /// under the user's documents folder.
+  /// An additional folder to copy the log into — typically a USB stick. Empty
+  /// means no extra copy.
   ///
-  /// Only the *mirror* is movable, never the primary. The primary has to be
-  /// somewhere that is always mounted and always writable, because an
-  /// unattended station that silently stops recording is the worst failure this
-  /// system has. Point this at a USB stick and the log survives the machine;
-  /// pull that stick out mid-event and scanning carries on against the primary
-  /// with a warning on screen.
-  final String mirrorDir;
+  /// Additive, never a redirect: the two default copies are written exactly as
+  /// before, so unplugging the stick leaves the machine no worse off than
+  /// before it was plugged in. Nothing may redirect the primary — an unattended
+  /// station that silently stops recording is the worst failure this system
+  /// has, so its destination must always be mounted and always writable.
+  final String extraDir;
 
   /// Where "匯出全部紀錄" writes. Empty means the default under documents.
   final String exportDir;
@@ -53,7 +52,7 @@ class StationConfig {
     String? pin,
     String? uploadUrl,
     String? uploadToken,
-    String? mirrorDir,
+    String? extraDir,
     String? exportDir,
   }) => StationConfig(
     stationId: stationId ?? this.stationId,
@@ -61,7 +60,7 @@ class StationConfig {
     pin: pin ?? this.pin,
     uploadUrl: uploadUrl ?? this.uploadUrl,
     uploadToken: uploadToken ?? this.uploadToken,
-    mirrorDir: mirrorDir ?? this.mirrorDir,
+    extraDir: extraDir ?? this.extraDir,
     exportDir: exportDir ?? this.exportDir,
   );
 
@@ -71,7 +70,7 @@ class StationConfig {
     'pin': pin,
     'upload_url': uploadUrl,
     'upload_token': uploadToken,
-    'mirror_dir': mirrorDir,
+    'extra_dir': extraDir,
     'export_dir': exportDir,
   };
 
@@ -90,7 +89,10 @@ class StationConfig {
       pin: rawPin.length >= 4 ? rawPin : defaultPin,
       uploadUrl: json['upload_url'] as String? ?? '',
       uploadToken: json['upload_token'] as String? ?? '',
-      mirrorDir: json['mirror_dir'] as String? ?? '',
+      // `mirror_dir` was the key in the first draft, when the chosen folder
+      // replaced the mirror instead of adding to it.
+      extraDir:
+          json['extra_dir'] as String? ?? json['mirror_dir'] as String? ?? '',
       exportDir: json['export_dir'] as String? ?? '',
     );
   }

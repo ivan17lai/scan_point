@@ -126,33 +126,56 @@ void main() {
     expect(reopened.countFor('CP3'), 1);
   });
 
-  test('a chosen mirror folder receives the whole log, not just new scans', () async {
+  Iterable<String> linesOf(String path) =>
+      File(path).readAsLinesSync().where((l) => l.trim().isNotEmpty);
+
+  test('the extra folder adds a copy without displacing the defaults', () async {
     final store = await openStore();
     await scan(store, 'AAAA1111');
     await scan(store, 'BBBB2222');
 
-    // Operator plugs in a USB stick mid-event and points the mirror at it.
+    // Operator plugs in a USB stick mid-event and adds it as an extra copy.
     final usb = Directory('${root.path}/usb');
-    final moved = await ScanStore.openAt(
+    final withUsb = await ScanStore.openAt(
       primary: primary,
-      mirror: usb,
+      mirror: mirror,
       export: export,
+      extra: usb,
     );
-    expect(await moved.rebuildMirror(), isNull);
-
-    final lines = File(
-      '${usb.path}/scans.jsonl',
-    ).readAsLinesSync().where((l) => l.trim().isNotEmpty);
-    expect(lines, hasLength(2), reason: '既有紀錄要整份複製過去');
-
-    // And scanning continues into the new location.
-    await scan(moved, 'CCCC3333');
+    expect(await withUsb.seedExtraCopy(), isNull);
+    expect(linesOf('${usb.path}/scans.jsonl'), hasLength(2),
+        reason: '既有紀錄要整份複製過去');
     expect(
-      File('${usb.path}/scans.jsonl')
-          .readAsLinesSync()
-          .where((l) => l.trim().isNotEmpty),
-      hasLength(3),
+      usb.listSync().whereType<File>().any((f) => f.path.endsWith('.csv')),
+      isTrue,
+      reason: '隨身碟上要有可直接開啟的 CSV',
     );
+
+    await scan(withUsb, 'CCCC3333');
+
+    // Four copies now, and the two defaults are untouched by the addition.
+    expect(linesOf('${primary.path}/scans.jsonl'), hasLength(3));
+    expect(linesOf('${mirror.path}/scans.jsonl'), hasLength(3));
+    expect(linesOf('${usb.path}/scans.jsonl'), hasLength(3));
+  });
+
+  test('pulling the stick out leaves the default copies intact', () async {
+    final usb = Directory('${root.path}/usb');
+    final store = await ScanStore.openAt(
+      primary: primary,
+      mirror: mirror,
+      export: export,
+      extra: usb,
+    );
+    await scan(store, 'AAAA1111');
+
+    // Reopening without the extra folder is what happens after it is removed.
+    final without = await openStore();
+    await scan(without, 'BBBB2222');
+
+    expect(without.countFor('CP3'), 2);
+    expect(linesOf('${primary.path}/scans.jsonl'), hasLength(2));
+    expect(linesOf('${mirror.path}/scans.jsonl'), hasLength(2));
   });
 
   test('probeWritable accepts a usable folder and rejects an unusable one', () async {
@@ -164,13 +187,15 @@ void main() {
     expect(await ScanStore.probeWritable(blocker.path), isNotNull);
   });
 
-  test('a scan still counts when only the mirror fails', () async {
-    // The mirror path is blocked by a file, so every mirror write throws.
+  test('a scan still counts when the extra copy fails', () async {
+    // The extra path is blocked by a file — stands in for a stick that was
+    // configured but never plugged in.
     final blocked = File('${root.path}/blocked')..writeAsStringSync('x');
     final store = await ScanStore.openAt(
       primary: primary,
-      mirror: Directory(blocked.path),
+      mirror: mirror,
       export: export,
+      extra: Directory(blocked.path),
     );
 
     final outcome = await scan(store, 'AAAA1111');

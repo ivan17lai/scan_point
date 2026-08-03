@@ -129,38 +129,40 @@ class _AdminScreenState extends State<AdminScreen> {
     }
   }
 
-  Future<void> _pickFolder({required bool mirror}) async {
+  Future<void> _pickFolder({required bool extra}) async {
     final chosen = await getDirectoryPath(
       confirmButtonText: '選擇',
-      initialDirectory: mirror
-          ? widget.controller.store.mirrorDir.path
+      initialDirectory: extra
+          ? widget.controller.store.extraDir?.path
           : widget.controller.store.exportDir.path,
     );
     if (chosen == null) return;
 
     setState(() {
       _busy = true;
-      _status = '正在切換到 $chosen…';
+      _status = extra ? '正在複製既有紀錄到 $chosen…' : '正在切換到 $chosen…';
     });
     final problem = await widget.controller.changeStorage(
-      mirrorDir: mirror ? chosen : null,
-      exportDir: mirror ? null : chosen,
+      extraDir: extra ? chosen : null,
+      exportDir: extra ? null : chosen,
     );
     setState(() {
       _busy = false;
-      _status = problem ?? '${mirror ? '鏡像備份' : '匯出'}位置已改為 $chosen';
+      _status =
+          problem ??
+          (extra ? '額外備份已設定,既有紀錄已複製到 $chosen' : '匯出目的地已改為 $chosen');
     });
   }
 
-  Future<void> _resetFolder({required bool mirror}) async {
+  Future<void> _resetFolder({required bool extra}) async {
     setState(() => _busy = true);
     final problem = await widget.controller.changeStorage(
-      mirrorDir: mirror ? '' : null,
-      exportDir: mirror ? null : '',
+      extraDir: extra ? '' : null,
+      exportDir: extra ? null : '',
     );
     setState(() {
       _busy = false;
-      _status = problem ?? '${mirror ? '鏡像備份' : '匯出'}位置已還原為預設';
+      _status = problem ?? (extra ? '已取消額外備份' : '匯出目的地已還原為預設');
     });
   }
 
@@ -170,6 +172,7 @@ class _AdminScreenState extends State<AdminScreen> {
     required bool isCustom,
     required VoidCallback onPick,
     required VoidCallback onReset,
+    String resetLabel = '還原預設',
   }) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
@@ -216,7 +219,7 @@ class _AdminScreenState extends State<AdminScreen> {
               if (isCustom)
                 TextButton(
                   onPressed: _busy ? null : onReset,
-                  child: const Text('還原預設'),
+                  child: Text(resetLabel),
                 ),
             ],
           ),
@@ -311,11 +314,12 @@ class _AdminScreenState extends State<AdminScreen> {
           ]),
           const SizedBox(height: 24),
           _section('儲存位置', [
-            _kv('主要紀錄(固定)', store.primaryDir.path),
+            _kv('① 主要紀錄(固定)', store.primaryDir.path),
+            _kv('② 鏡像備份(固定)', store.mirrorDir.path),
             Padding(
-              padding: const EdgeInsets.only(top: 4, bottom: 14),
+              padding: const EdgeInsets.only(top: 6, bottom: 16),
               child: Text(
-                '主要紀錄的位置不開放更改。它必須永遠掛載、永遠可寫 —— '
+                '這兩份的位置不開放更改 —— 它們必須永遠掛載、永遠可寫。'
                 '若指向隨身碟而中途鬆脫,山上這台機器會靜默地停止記錄。',
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
@@ -325,27 +329,31 @@ class _AdminScreenState extends State<AdminScreen> {
               ),
             ),
             _folderRow(
-              label: '鏡像備份',
-              path: store.mirrorDir.path,
-              isCustom: c.config.mirrorDir.trim().isNotEmpty,
-              onPick: () => _pickFolder(mirror: true),
-              onReset: () => _resetFolder(mirror: true),
+              label: '③ 額外備份(例如隨身碟)',
+              path: store.extraDir?.path ?? '未設定 — 只寫上面兩份',
+              isCustom: c.config.extraDir.trim().isNotEmpty,
+              onPick: () => _pickFolder(extra: true),
+              onReset: () => _resetFolder(extra: true),
+              resetLabel: '取消額外備份',
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Text(
+                '這是「多寫一份」,不會取代上面兩份 —— 隨身碟拔掉,原本的備援完全不受影響。'
+                '設定後既有紀錄會整份複製過去(含 CSV,可直接開),不是只從現在開始記。',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 13,
+                  height: 1.5,
+                ),
+              ),
             ),
             _folderRow(
-              label: '匯出',
+              label: '匯出目的地',
               path: store.exportDir.path,
               isCustom: c.config.exportDir.trim().isNotEmpty,
-              onPick: () => _pickFolder(mirror: false),
-              onReset: () => _resetFolder(mirror: false),
-            ),
-            Text(
-              '把鏡像指到隨身碟,紀錄就有一份離開這台機器的副本。'
-              '更改後既有紀錄會整份複製過去,不是只從現在開始記。',
-              style: TextStyle(
-                color: scheme.onSurfaceVariant,
-                fontSize: 13,
-                height: 1.5,
-              ),
+              onPick: () => _pickFolder(extra: false),
+              onReset: () => _resetFolder(extra: false),
             ),
           ]),
           const SizedBox(height: 24),
