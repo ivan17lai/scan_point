@@ -39,7 +39,8 @@ class AppController extends ChangeNotifier {
     HardwareKeyboard.instance.addHandler(_onKey);
   }
 
-  final ScanStore _store;
+  // Not final: choosing a different mirror folder reopens the store in place.
+  ScanStore _store;
   final ConfigStore _configStore;
   final TonePlayer _tones;
 
@@ -80,8 +81,12 @@ class AppController extends ChangeNotifier {
   bool exitRequested = false;
 
   static Future<AppController> create() async {
-    final store = await ScanStore.open();
+    // Config first: it decides where the mirror and export folders live.
     final (configStore, config) = await ConfigStore.open();
+    final store = await ScanStore.open(
+      mirrorOverride: config.mirrorDir,
+      exportOverride: config.exportDir,
+    );
     final tones = await TonePlayer.create();
     return AppController._(store, configStore, tones, config);
   }
@@ -230,6 +235,40 @@ class AppController extends ChangeNotifier {
     _config = config;
     await _configStore.save(config);
     notifyListeners();
+  }
+
+  /// Points the mirror and/or export folder somewhere else.
+  ///
+  /// Returns null on success, or a message for the operator. The folder is
+  /// proved writable before anything is changed, and the mirror is rewritten in
+  /// full afterwards so the new location holds the whole log rather than only
+  /// what gets scanned from this moment on.
+  Future<String?> changeStorage({String? mirrorDir, String? exportDir}) async {
+    final next = _config.copyWith(
+      mirrorDir: mirrorDir,
+      exportDir: exportDir,
+    );
+
+    for (final candidate in [next.mirrorDir, next.exportDir]) {
+      if (candidate.trim().isEmpty) continue;
+      final problem = await ScanStore.probeWritable(candidate);
+      if (problem != null) return '無法寫入 $candidate — $problem';
+    }
+
+    final reopened = await ScanStore.open(
+      mirrorOverride: next.mirrorDir,
+      exportOverride: next.exportDir,
+    );
+    final rebuildProblem = await reopened.rebuildMirror();
+
+    _store = reopened;
+    _config = next;
+    await _configStore.save(next);
+    notifyListeners();
+
+    return rebuildProblem == null
+        ? null
+        : '位置已更新,但既有紀錄複製失敗:$rebuildProblem';
   }
 
   List<ScanRecord> get recentScans => _store.recentFor(_config.stationId);

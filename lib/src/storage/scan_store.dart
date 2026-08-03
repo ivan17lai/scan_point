@@ -62,18 +62,73 @@ class ScanStore {
       .take(limit)
       .toList();
 
-  static Future<ScanStore> open() async {
+  /// Opens the store, optionally redirecting the mirror and export folders.
+  ///
+  /// The primary is deliberately not redirectable — see [StationConfig.mirrorDir].
+  static Future<ScanStore> open({
+    String? mirrorOverride,
+    String? exportOverride,
+  }) async {
     final support = await getApplicationSupportDirectory();
     final documents = await getApplicationDocumentsDirectory();
 
     final primary = Directory('${support.path}/data');
-    final mirror = Directory('${documents.path}/OrienteeringSystem/mirror');
-    final export = Directory('${documents.path}/OrienteeringSystem/export');
-    for (final dir in [primary, mirror, export]) {
-      await dir.create(recursive: true);
-    }
+    final mirror = mirrorOverride != null && mirrorOverride.trim().isNotEmpty
+        ? Directory(mirrorOverride.trim())
+        : Directory('${documents.path}/OrienteeringSystem/mirror');
+    final export = exportOverride != null && exportOverride.trim().isNotEmpty
+        ? Directory(exportOverride.trim())
+        : Directory('${documents.path}/OrienteeringSystem/export');
 
     return openAt(primary: primary, mirror: mirror, export: export);
+  }
+
+  /// Default locations, for showing the operator what "reset to default" means.
+  static Future<({String mirror, String export})> defaultDirs() async {
+    final documents = await getApplicationDocumentsDirectory();
+    return (
+      mirror: '${documents.path}/OrienteeringSystem/mirror',
+      export: '${documents.path}/OrienteeringSystem/export',
+    );
+  }
+
+  /// Confirms a chosen folder can actually be written to, by writing to it.
+  ///
+  /// Checking `existsSync` is not enough: a removable drive can be present but
+  /// read-only, and a network share can be mounted but not writable. Returns
+  /// null when the folder is usable, otherwise a message to show the operator.
+  static Future<String?> probeWritable(String path) async {
+    try {
+      final dir = Directory(path);
+      await dir.create(recursive: true);
+      final probe = File(
+        '${dir.path}/.scan_point_write_test_'
+        '${DateTime.now().microsecondsSinceEpoch}',
+      );
+      await probe.writeAsString('ok', flush: true);
+      await probe.delete();
+      return null;
+    } catch (e) {
+      return '$e';
+    }
+  }
+
+  /// Rewrites the mirror from memory so a newly chosen folder holds the whole
+  /// log, not just what happens to be scanned from now on.
+  Future<String?> rebuildMirror() async {
+    try {
+      await _mirrorDir.create(recursive: true);
+      final buffer = StringBuffer();
+      for (final record in _records) {
+        buffer.writeln(jsonEncode(record.toJson()));
+      }
+      await File(
+        '${_mirrorDir.path}/$_logName',
+      ).writeAsString(buffer.toString(), flush: true);
+      return null;
+    } catch (e) {
+      return '$e';
+    }
   }
 
   /// Same as [open] with the directories supplied, so tests can point at a temp
@@ -83,10 +138,22 @@ class ScanStore {
     required Directory mirror,
     required Directory export,
   }) async {
-    for (final dir in [primary, mirror, export]) {
-      await dir.create(recursive: true);
-    }
+    // Only the primary is allowed to be fatal. The mirror may point at a USB
+    // stick nobody remembered to plug in, and the export folder at a network
+    // share that is down — neither is a reason to refuse to record scans at an
+    // unattended control point.
+    await primary.create(recursive: true);
+
     final store = ScanStore._(primary, mirror, export);
+    for (final dir in [mirror, export]) {
+      try {
+        await dir.create(recursive: true);
+      } catch (e) {
+        store.lastWriteError =
+            '${dir == mirror ? '鏡像' : '匯出'}資料夾無法使用:$e';
+      }
+    }
+
     await store._load();
     return store;
   }

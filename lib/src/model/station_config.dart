@@ -10,7 +10,23 @@ class StationConfig {
     this.pin = defaultPin,
     this.uploadUrl = '',
     this.uploadToken = '',
+    this.mirrorDir = '',
+    this.exportDir = '',
   });
+
+  /// Where the redundant copy of the log is written. Empty means the default
+  /// under the user's documents folder.
+  ///
+  /// Only the *mirror* is movable, never the primary. The primary has to be
+  /// somewhere that is always mounted and always writable, because an
+  /// unattended station that silently stops recording is the worst failure this
+  /// system has. Point this at a USB stick and the log survives the machine;
+  /// pull that stick out mid-event and scanning carries on against the primary
+  /// with a warning on screen.
+  final String mirrorDir;
+
+  /// Where "匯出全部紀錄" writes. Empty means the default under documents.
+  final String exportDir;
 
   /// Ships in public source, so it protects nothing on its own. The admin panel
   /// says so in as many words while it is still in use.
@@ -37,12 +53,16 @@ class StationConfig {
     String? pin,
     String? uploadUrl,
     String? uploadToken,
+    String? mirrorDir,
+    String? exportDir,
   }) => StationConfig(
     stationId: stationId ?? this.stationId,
     stationName: stationName ?? this.stationName,
     pin: pin ?? this.pin,
     uploadUrl: uploadUrl ?? this.uploadUrl,
     uploadToken: uploadToken ?? this.uploadToken,
+    mirrorDir: mirrorDir ?? this.mirrorDir,
+    exportDir: exportDir ?? this.exportDir,
   );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -51,6 +71,8 @@ class StationConfig {
     'pin': pin,
     'upload_url': uploadUrl,
     'upload_token': uploadToken,
+    'mirror_dir': mirrorDir,
+    'export_dir': exportDir,
   };
 
   static StationConfig fromJson(Map<String, dynamic> json) {
@@ -68,6 +90,8 @@ class StationConfig {
       pin: rawPin.length >= 4 ? rawPin : defaultPin,
       uploadUrl: json['upload_url'] as String? ?? '',
       uploadToken: json['upload_token'] as String? ?? '',
+      mirrorDir: json['mirror_dir'] as String? ?? '',
+      exportDir: json['export_dir'] as String? ?? '',
     );
   }
 }

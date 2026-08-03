@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -128,6 +129,102 @@ class _AdminScreenState extends State<AdminScreen> {
     }
   }
 
+  Future<void> _pickFolder({required bool mirror}) async {
+    final chosen = await getDirectoryPath(
+      confirmButtonText: '選擇',
+      initialDirectory: mirror
+          ? widget.controller.store.mirrorDir.path
+          : widget.controller.store.exportDir.path,
+    );
+    if (chosen == null) return;
+
+    setState(() {
+      _busy = true;
+      _status = '正在切換到 $chosen…';
+    });
+    final problem = await widget.controller.changeStorage(
+      mirrorDir: mirror ? chosen : null,
+      exportDir: mirror ? null : chosen,
+    );
+    setState(() {
+      _busy = false;
+      _status = problem ?? '${mirror ? '鏡像備份' : '匯出'}位置已改為 $chosen';
+    });
+  }
+
+  Future<void> _resetFolder({required bool mirror}) async {
+    setState(() => _busy = true);
+    final problem = await widget.controller.changeStorage(
+      mirrorDir: mirror ? '' : null,
+      exportDir: mirror ? null : '',
+    );
+    setState(() {
+      _busy = false;
+      _status = problem ?? '${mirror ? '鏡像備份' : '匯出'}位置已還原為預設';
+    });
+  }
+
+  Widget _folderRow({
+    required String label,
+    required String path,
+    required bool isCustom,
+    required VoidCallback onPick,
+    required VoidCallback onReset,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(label, style: TextStyle(color: scheme.onSurfaceVariant)),
+              if (isCustom) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: ShapeDecoration(
+                    color: scheme.secondaryContainer,
+                    shape: const StadiumBorder(),
+                  ),
+                  child: Text(
+                    '自訂',
+                    style: TextStyle(
+                      color: scheme.onSecondaryContainer,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 4),
+          SelectableText(path, style: TextStyle(color: scheme.onSurface)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 10,
+            children: [
+              OutlinedButton.icon(
+                onPressed: _busy ? null : onPick,
+                icon: const Icon(Icons.folder_open_outlined, size: 18),
+                label: const Text('選擇資料夾'),
+              ),
+              if (isCustom)
+                TextButton(
+                  onPressed: _busy ? null : onReset,
+                  child: const Text('還原預設'),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   void _backToKiosk() {
     // Drop the text input client before returning, otherwise the IME stays
     // attached and the next card scan would be routed through it.
@@ -205,15 +302,51 @@ class _AdminScreenState extends State<AdminScreen> {
             _kv('本站已記錄', '${c.recordedCount} 筆'),
             _kv('紀錄檔總行數(含重複刷)', '${store.totalLines} 行'),
             _kv('設定來源', c.configSource),
-            _kv('主要紀錄資料夾', store.primaryDir.path),
-            _kv('鏡像備份資料夾', store.mirrorDir.path),
-            _kv('匯出資料夾', store.exportDir.path),
             if (store.lastWriteError != null)
               _kv('寫入警告', store.lastWriteError!),
             if (KioskLock.nativeError != null)
               _kv('鎖定狀態', KioskLock.nativeError!),
             if (TonePlayer.unavailableReason != null)
               _kv('音效狀態', TonePlayer.unavailableReason!),
+          ]),
+          const SizedBox(height: 24),
+          _section('儲存位置', [
+            _kv('主要紀錄(固定)', store.primaryDir.path),
+            Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 14),
+              child: Text(
+                '主要紀錄的位置不開放更改。它必須永遠掛載、永遠可寫 —— '
+                '若指向隨身碟而中途鬆脫,山上這台機器會靜默地停止記錄。',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 13,
+                  height: 1.5,
+                ),
+              ),
+            ),
+            _folderRow(
+              label: '鏡像備份',
+              path: store.mirrorDir.path,
+              isCustom: c.config.mirrorDir.trim().isNotEmpty,
+              onPick: () => _pickFolder(mirror: true),
+              onReset: () => _resetFolder(mirror: true),
+            ),
+            _folderRow(
+              label: '匯出',
+              path: store.exportDir.path,
+              isCustom: c.config.exportDir.trim().isNotEmpty,
+              onPick: () => _pickFolder(mirror: false),
+              onReset: () => _resetFolder(mirror: false),
+            ),
+            Text(
+              '把鏡像指到隨身碟,紀錄就有一份離開這台機器的副本。'
+              '更改後既有紀錄會整份複製過去,不是只從現在開始記。',
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontSize: 13,
+                height: 1.5,
+              ),
+            ),
           ]),
           const SizedBox(height: 24),
           _section('站點設定', [

@@ -45,6 +45,8 @@ dependencies:
   wakelock_plus: ^1.2.10
   # Manual upload to the cloud endpoint from the admin panel.
   http: ^1.2.2
+  # Folder picker, so the mirror copy can be pointed at a USB stick.
+  file_selector: ^1.1.0
 
 dev_dependencies:
   flutter_test:

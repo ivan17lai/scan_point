@@ -126,6 +126,60 @@ void main() {
     expect(reopened.countFor('CP3'), 1);
   });
 
+  test('a chosen mirror folder receives the whole log, not just new scans', () async {
+    final store = await openStore();
+    await scan(store, 'AAAA1111');
+    await scan(store, 'BBBB2222');
+
+    // Operator plugs in a USB stick mid-event and points the mirror at it.
+    final usb = Directory('${root.path}/usb');
+    final moved = await ScanStore.openAt(
+      primary: primary,
+      mirror: usb,
+      export: export,
+    );
+    expect(await moved.rebuildMirror(), isNull);
+
+    final lines = File(
+      '${usb.path}/scans.jsonl',
+    ).readAsLinesSync().where((l) => l.trim().isNotEmpty);
+    expect(lines, hasLength(2), reason: '既有紀錄要整份複製過去');
+
+    // And scanning continues into the new location.
+    await scan(moved, 'CCCC3333');
+    expect(
+      File('${usb.path}/scans.jsonl')
+          .readAsLinesSync()
+          .where((l) => l.trim().isNotEmpty),
+      hasLength(3),
+    );
+  });
+
+  test('probeWritable accepts a usable folder and rejects an unusable one', () async {
+    expect(await ScanStore.probeWritable('${root.path}/fresh'), isNull);
+
+    // A path occupied by a file cannot become a directory — portable stand-in
+    // for a read-only drive or a share that is mounted but not writable.
+    final blocker = File('${root.path}/blocker')..writeAsStringSync('x');
+    expect(await ScanStore.probeWritable(blocker.path), isNotNull);
+  });
+
+  test('a scan still counts when only the mirror fails', () async {
+    // The mirror path is blocked by a file, so every mirror write throws.
+    final blocked = File('${root.path}/blocked')..writeAsStringSync('x');
+    final store = await ScanStore.openAt(
+      primary: primary,
+      mirror: Directory(blocked.path),
+      export: export,
+    );
+
+    final outcome = await scan(store, 'AAAA1111');
+
+    expect(outcome.failed, isFalse, reason: '主檔寫成功就不該退回選手');
+    expect(store.countFor('CP3'), 1);
+    expect(store.lastWriteError, isNotNull, reason: '但要留下警告');
+  });
+
   test('export copies the log files into a timestamped folder', () async {
     final store = await openStore();
     await scan(store, 'AAAA1111');
