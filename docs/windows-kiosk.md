@@ -7,15 +7,19 @@ App 自己能做到的鎖定都寫在程式裡了(全螢幕、永遠置頂、擋
 
 ---
 
-## 1. 建置
+## 1. 取得執行檔
 
-在 Windows 機器上(不是 mac):
+**不用自己編。** 每次 push 到 `main`,GitHub Actions 都會在 Windows runner 上建置 release
+版本。到 repo 的 Actions 頁面挑一個綠色的 run,下載 `scan_point-windows-x64` 這個 artifact,
+解壓縮就是完整的程式資料夾,**不需要安裝程式**,整個資料夾複製到現場機器即可。
+
+要自己編的話,在 Windows 機器上(不是 mac):
 
 ```bash
 flutter build windows --release
 ```
 
-產物在 `build\windows\x64\runner\Release\`。整個資料夾複製到現場機器即可,不需要安裝程式。
+產物在 `build\windows\x64\runner\Release\`。
 
 ## 2. 賽前預先設定站點
 

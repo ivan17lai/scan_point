@@ -1,4 +1,6 @@
-# 定向越野 掃描站
+# scan_point — 定向越野掃描站
+
+[![Windows](https://github.com/ivan17lai/scan_point/actions/workflows/windows.yml/badge.svg)](https://github.com/ivan17lai/scan_point/actions/workflows/windows.yml)
 
 無人現場的鍵盤模擬式 NFC 讀卡機記錄程式。選手刷卡 → 畫面與聲音給回饋 → 逐筆寫檔。
 桌面版 Flutter,目標平台 Windows,開發期在 macOS 上跑。

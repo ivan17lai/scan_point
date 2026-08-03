@@ -1,0 +1,64 @@
+# Builds the Windows target on every push.
+#
+# This exists because the machine this project is developed on is a Mac, and
+# Windows cannot be cross-compiled from macOS — the native half (the low-level
+# keyboard hook in windows/runner/kiosk_lock.cpp, and the CMake wiring around
+# it) would otherwise ship having never been through a compiler. The Windows
+# runner template sets /W4 /WX, so any warning in that C++ fails the build,
+# which is exactly the signal wanted here.
+#
+# The release artifact is downloadable from the run page, so a station laptop
+# can be provisioned without anyone building locally.
+
+name: Windows
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          # Pinned to the version the project is developed against. Floating on
+          # "stable" would turn an upstream release into a surprise CI failure
+          # on an unrelated commit.
+          flutter-version: 3.44.2
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build release
+        run: flutter build windows --release
+
+      - name: Show build output
+        run: |
+          Get-ChildItem build/windows/x64/runner/Release
+          if (-not (Test-Path build/windows/x64/runner/Release/scan_point.exe)) {
+            throw "scan_point.exe not found — check BINARY_NAME in windows/CMakeLists.txt"
+          }
+        shell: pwsh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scan_point-windows-x64
+          path: build/windows/x64/runner/Release/
+          if-no-files-found: error

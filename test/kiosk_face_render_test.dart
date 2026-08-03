@@ -32,9 +32,15 @@ void main() {
       orElse: () => '',
     );
     if (path.isEmpty) return;
-    final bytes = File(path).readAsBytesSync().buffer.asByteData();
-    for (final family in ['renderFont', 'monospace']) {
-      await (FontLoader(family)..addFont(Future.value(bytes))).load();
+    try {
+      final bytes = File(path).readAsBytesSync().buffer.asByteData();
+      for (final family in ['renderFont', 'monospace']) {
+        await (FontLoader(family)..addFont(Future.value(bytes))).load();
+      }
+    } catch (_) {
+      // Loading a system font is a nicety for reviewing the captured images —
+      // a font the loader cannot parse (a .ttc collection, say) must not fail
+      // the layout assertions, which are what CI actually cares about.
     }
   });
 
