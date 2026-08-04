@@ -48,14 +48,16 @@ void main() {
     }
   }
 
+  /// A reader emits `;<payload>?` — semicolon unshifted to open, shift+slash
+  /// to close.
   Future<void> sendFrame(String payload, {bool terminate = true}) async {
-    await press(PhysicalKeyboardKey.slash, shift: true); // '?'
+    await press(PhysicalKeyboardKey.semicolon); // ';'
     for (final char in payload.split('')) {
       final key = _keyFor(char);
       await press(key.$1, shift: key.$2);
     }
     if (terminate) {
-      await press(PhysicalKeyboardKey.semicolon); // ';'
+      await press(PhysicalKeyboardKey.slash, shift: true); // '?'
     }
   }
 
@@ -65,7 +67,7 @@ void main() {
     expect(starts, 1);
     expect(faults, isEmpty);
     expect(frames.single.payload, 'A7F3C210');
-    expect(frames.single.terminator, FrameTerminator.semicolon);
+    expect(frames.single.terminator, FrameTerminator.questionMark);
   });
 
   testWidgets('uppercases a payload the reader sent without shift', (
@@ -120,7 +122,7 @@ void main() {
   });
 
   testWidgets('a restarted frame wins over the abandoned one', (tester) async {
-    await press(PhysicalKeyboardKey.slash, shift: true);
+    await press(PhysicalKeyboardKey.semicolon);
     await press(PhysicalKeyboardKey.keyZ);
     await sendFrame('CAFE');
 

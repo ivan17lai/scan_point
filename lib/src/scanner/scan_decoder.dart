@@ -26,8 +26,8 @@ enum ScanFault {
 }
 
 /// How the frame ended, kept in the log because a reader that stops sending the
-/// `;` terminator is worth noticing after the event.
-enum FrameTerminator { semicolon, enterKey }
+/// `?` terminator is worth noticing after the event.
+enum FrameTerminator { questionMark, enterKey }
 
 class ScanFrame {
   const ScanFrame(this.payload, this.terminator, this.raw);
@@ -46,11 +46,11 @@ class ScanTiming {
   /// sit around 5–30ms; a person typing cannot beat this.
   final Duration maxKeyGap;
 
-  /// Hard ceiling from `?` to `;`.
+  /// Hard ceiling from `;` to `?`.
   final Duration frameTimeout;
 }
 
-/// Reassembles `?<payload>;` frames out of raw physical key events.
+/// Reassembles `;<payload>?` frames out of raw physical key events.
 ///
 /// Deliberately never touches a text field: with no text input client focused,
 /// the IME is never engaged, so a running 注音 input method cannot swallow,
@@ -69,6 +69,15 @@ class ScanDecoder {
   final void Function(ScanFault fault) onFault;
   final ScanTiming timing;
   final int maxPayloadLength;
+
+  /// Frame markers. A reader emits `;<payload>?`.
+  ///
+  /// Both are decided by physical key position, never by the character the
+  /// system thinks was typed: `;` is the semicolon key unshifted, `?` is the
+  /// slash key with shift. That is what makes the frame survive a Chinese input
+  /// method, a non-US keyboard layout, and CapsLock.
+  static const String _startMarker = ';';
+  static const String _endMarker = '?';
 
   static final RegExp _validPayload = RegExp(r'^[A-Za-z0-9\-_.:]{1,64}$');
 
@@ -106,24 +115,24 @@ class ScanDecoder {
         _abort(ScanFault.interrupted);
         // The character that arrived late may itself be the start of a new
         // frame, so fall through rather than dropping it.
-        if (char != '?') return false;
+        if (char != _startMarker) return false;
       }
     }
     _lastKeyAt = now;
 
     if (!_open) {
-      if (char != '?') return false;
+      if (char != _startMarker) return false;
       _start();
       return true;
     }
 
-    if (char == '?') {
+    if (char == _startMarker) {
       // Reader re-sent the start marker mid-frame. Trust the newer frame.
       _buffer.clear();
       return true;
     }
-    if (char == ';') {
-      _complete(FrameTerminator.semicolon);
+    if (char == _endMarker) {
+      _complete(FrameTerminator.questionMark);
       return true;
     }
     if (_buffer.length >= maxPayloadLength) {

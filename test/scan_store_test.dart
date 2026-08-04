@@ -18,7 +18,7 @@ void main() {
     cardId: card,
     stationId: 'CP3',
     stationName: '水源地',
-    terminator: FrameTerminator.semicolon,
+    terminator: FrameTerminator.questionMark,
     raw: card,
   );
 
@@ -82,7 +82,7 @@ void main() {
       cardId: 'BEEF01',
       stationId: 'CP4',
       stationName: '稜線',
-      terminator: FrameTerminator.semicolon,
+      terminator: FrameTerminator.questionMark,
       raw: 'BEEF01',
     );
 
@@ -186,7 +186,7 @@ void main() {
         cardId: 'CARD$station',
         stationId: station,
         stationName: station,
-        terminator: FrameTerminator.semicolon,
+        terminator: FrameTerminator.questionMark,
         raw: 'CARD$station',
       );
       await store.seedExtraCopy();

@@ -10,7 +10,7 @@
 讀卡機以鍵盤模擬方式輸出,一筆資料為:
 
 ```
-?<卡號>;
+;<卡號>?
 ```
 
 ## 為什麼不怕輸入法
@@ -25,7 +25,8 @@ US-QWERTY 表換成字元 —— 而不是讀系統給的字元。因此同時�
 - 系統鍵盤配置(注音鍵盤、Dvorak)
 - CapsLock
 
-`?` 判斷的是「slash 那顆實體鍵 + Shift」,`;` 判斷的是「semicolon 那顆實體鍵」,都不看字元。
+開頭的 `;` 判斷的是「semicolon 那顆實體鍵、沒按 Shift」,結尾的 `?` 判斷的是「slash 那顆實體鍵
++ Shift」,都不看字元。
 
 程式碼:[lib/src/scanner/keyboard_layout.dart](lib/src/scanner/keyboard_layout.dart)、
 [lib/src/scanner/scan_decoder.dart](lib/src/scanner/scan_decoder.dart)
@@ -78,7 +79,7 @@ KIOSK_RENDER_DIR=/tmp/kiosk-shots flutter test test/kiosk_face_render_test.dart
 | 碼 | 意思 |
 | --- | --- |
 | `E-01` | 兩個字元間隔太久 —— 卡片中途移開,或有人在手打 |
-| `E-02` | 收到 `?` 但等不到結尾 |
+| `E-02` | 收到 `;` 但等不到結尾的 `?` |
 | `E-03` | 卡號是空的、太長,或含有不該出現的字元 |
 | `E-10` | 寫入紀錄失敗 |
 

@@ -50,7 +50,7 @@ class ScanRecord {
     stationName: json['station_name'] as String? ?? '',
     terminator: FrameTerminator.values.firstWhere(
       (t) => t.name == json['term'],
-      orElse: () => FrameTerminator.semicolon,
+      orElse: () => FrameTerminator.questionMark,
     ),
     raw: json['raw'] as String? ?? '',
     duplicateOf: json['duplicate_of'] == null
