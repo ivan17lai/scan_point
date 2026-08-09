@@ -17,6 +17,9 @@ void main() {
           .map((l) => jsonDecode(l) as Map<String, dynamic>)
           .toList();
 
+  List<String> readCsv(Directory dir) =>
+      File('${dir.path}/${EventLog.csvFileName}').readAsLinesSync();
+
   test('writes one line per event to every target', () async {
     final app = Directory('${root.path}/app');
     final usb = Directory('${root.path}/usb');
@@ -36,6 +39,13 @@ void main() {
       expect(lines.first['station_id'], 'CP3');
       expect(lines.last['detail']['code'], 'E-02');
       expect(lines.last['at_utc'], endsWith('Z'));
+
+      final csv = readCsv(dir);
+      expect(csv, hasLength(3), reason: '標題列加上兩筆事件');
+      expect(csv.first, contains('event_type'));
+      expect(csv[1], contains('app_start'));
+      expect(csv[2], contains('scan_fail'));
+      expect(csv[2], contains('E-02'));
     }
   });
 
@@ -54,9 +64,15 @@ void main() {
     );
 
     final raw = File('${app.path}/${EventLog.fileName}').readAsStringSync();
+    final csvRaw = File(
+      '${app.path}/${EventLog.csvFileName}',
+    ).readAsStringSync();
     expect(raw, contains('水源地'), reason: '非機密的變更要看得見');
     expect(raw, isNot(contains('135790')));
     expect(raw, isNot(contains('super-secret')));
+    expect(csvRaw, contains('水源地'));
+    expect(csvRaw, isNot(contains('135790')));
+    expect(csvRaw, isNot(contains('super-secret')));
 
     final detail = read(app).single['detail'] as Map<String, dynamic>;
     expect(
@@ -75,5 +91,28 @@ void main() {
 
     await expectLater(log.record(EventType.appStart), completes);
     expect(read(good), hasLength(1), reason: '可用的目標仍要寫進去');
+    expect(readCsv(good), hasLength(2));
+  });
+  test('history reads newest first and skips a torn final line', () async {
+    final app = Directory('${root.path}/app');
+    final mirror = Directory('${root.path}/mirror');
+    final log = EventLog([app, mirror]);
+
+    await log.record(EventType.appStart, stationId: 'CP3');
+    await log.record(
+      EventType.scanFail,
+      stationId: 'CP3',
+      detail: {'code': 'E-02'},
+    );
+    await File(
+      '${app.path}/${EventLog.fileName}',
+    ).writeAsString('{"incomplete":', mode: FileMode.append);
+
+    final history = await log.history();
+
+    expect(history, hasLength(2));
+    expect(history.first.type, EventType.scanFail.wire);
+    expect(history.first.detail['code'], 'E-02');
+    expect(history.last.type, EventType.appStart.wire);
   });
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -26,6 +28,7 @@ class _PinScreenState extends State<PinScreen> {
   final FocusNode _focus = FocusNode();
   String _entry = '';
   bool _wrong = false;
+  bool _submitting = false;
 
   static const int _maxLength = 12;
 
@@ -48,9 +51,14 @@ class _PinScreenState extends State<PinScreen> {
     setState(() => _entry = _entry.substring(0, _entry.length - 1));
   }
 
-  void _submit() {
-    if (widget.controller.submitPin(_entry)) return;
+  Future<void> _submit() async {
+    if (_submitting) return;
+    setState(() => _submitting = true);
+
+    if (await widget.controller.submitPin(_entry)) return;
+    if (!mounted) return;
     setState(() {
+      _submitting = false;
       _wrong = true;
       _entry = '';
     });
@@ -65,7 +73,7 @@ class _PinScreenState extends State<PinScreen> {
       return KeyEventResult.handled;
     }
     if (UsQwertyLayout.isEnter(event.physicalKey)) {
-      _submit();
+      unawaited(_submit());
       return KeyEventResult.handled;
     }
     if (event.physicalKey == PhysicalKeyboardKey.backspace) {
@@ -73,7 +81,7 @@ class _PinScreenState extends State<PinScreen> {
       return KeyEventResult.handled;
     }
     if (event.physicalKey == PhysicalKeyboardKey.escape) {
-      widget.controller.returnToKiosk();
+      unawaited(widget.controller.returnToKiosk());
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -189,7 +197,7 @@ class _PinScreenState extends State<PinScreen> {
             if (isDelete) {
               _backspace();
             } else if (isConfirm) {
-              _submit();
+              unawaited(_submit());
             } else {
               _append(label);
             }

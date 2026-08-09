@@ -12,7 +12,7 @@ void main() {
   late Directory export;
 
   Future<ScanStore> openStore() =>
-      ScanStore.openAt(primary: primary, mirror: mirror, export: export);
+      ScanStore.openAt(primary: primary, mirror: mirror);
 
   Future<ScanOutcome> scan(ScanStore store, String card) => store.record(
     cardId: card,
@@ -115,7 +115,6 @@ void main() {
       final reopened = await ScanStore.openAt(
         primary: primary,
         mirror: Directory('${root.path}/empty-mirror'),
-        export: export,
       );
       expect(reopened.countFor('CP3'), 2);
     },
@@ -133,44 +132,46 @@ void main() {
   Iterable<String> linesOf(String path) =>
       File(path).readAsLinesSync().where((l) => l.trim().isNotEmpty);
 
-  test('the extra folder adds a copy without displacing the defaults', () async {
-    final store = await openStore();
-    await scan(store, 'AAAA1111');
-    await scan(store, 'BBBB2222');
+  test(
+    'the extra folder adds a copy without displacing the defaults',
+    () async {
+      final store = await openStore();
+      await scan(store, 'AAAA1111');
+      await scan(store, 'BBBB2222');
 
-    // Operator plugs in a USB stick mid-event and adds it as an extra copy.
-    final usb = Directory('${root.path}/usb');
-    final withUsb = await ScanStore.openAt(
-      primary: primary,
-      mirror: mirror,
-      export: export,
-      extra: usb,
-    );
-    expect(await withUsb.seedExtraCopy(), isNull);
+      // Operator plugs in a USB stick mid-event and adds it as an extra copy.
+      final usb = Directory('${root.path}/usb');
+      final withUsb = await ScanStore.openAt(
+        primary: primary,
+        mirror: mirror,
+        extra: usb,
+      );
+      expect(await withUsb.seedExtraCopy(), isNull);
 
-    // Namespaced per station, so one stick can collect several machines.
-    final stationDir = withUsb.extraDirFor('CP3')!;
-    expect(stationDir.path, '${usb.path}/scan_point/CP3');
-    expect(
-      linesOf('${stationDir.path}/scans.jsonl'),
-      hasLength(2),
-      reason: '既有紀錄要整份複製過去',
-    );
-    expect(
-      stationDir.listSync().whereType<File>().any(
-        (f) => f.path.endsWith('.csv'),
-      ),
-      isTrue,
-      reason: '隨身碟上要有可直接開啟的 CSV',
-    );
+      // Namespaced per station, so one stick can collect several machines.
+      final stationDir = withUsb.extraDirFor('CP3')!;
+      expect(stationDir.path, '${usb.path}/scan_point/CP3');
+      expect(
+        linesOf('${stationDir.path}/scans.jsonl'),
+        hasLength(2),
+        reason: '既有紀錄要整份複製過去',
+      );
+      expect(
+        stationDir.listSync().whereType<File>().any(
+          (f) => f.path.endsWith('.csv'),
+        ),
+        isTrue,
+        reason: '隨身碟上要有可直接開啟的 CSV',
+      );
 
-    await scan(withUsb, 'CCCC3333');
+      await scan(withUsb, 'CCCC3333');
 
-    // Four copies now, and the two defaults are untouched by the addition.
-    expect(linesOf('${primary.path}/scans.jsonl'), hasLength(3));
-    expect(linesOf('${mirror.path}/scans.jsonl'), hasLength(3));
-    expect(linesOf('${stationDir.path}/scans.jsonl'), hasLength(3));
-  });
+      // Four copies now, and the two defaults are untouched by the addition.
+      expect(linesOf('${primary.path}/scans.jsonl'), hasLength(3));
+      expect(linesOf('${mirror.path}/scans.jsonl'), hasLength(3));
+      expect(linesOf('${stationDir.path}/scans.jsonl'), hasLength(3));
+    },
+  );
 
   test('two stations sharing one stick do not overwrite each other', () async {
     final usb = Directory('${root.path}/usb');
@@ -179,7 +180,6 @@ void main() {
       final store = await ScanStore.openAt(
         primary: Directory('${root.path}/$station-primary'),
         mirror: Directory('${root.path}/$station-mirror'),
-        export: export,
         extra: usb,
       );
       await store.record(
@@ -210,7 +210,6 @@ void main() {
     final store = await ScanStore.openAt(
       primary: primary,
       mirror: mirror,
-      export: export,
       extra: usb,
     );
     await scan(store, 'AAAA1111');
@@ -224,14 +223,17 @@ void main() {
     expect(linesOf('${mirror.path}/scans.jsonl'), hasLength(2));
   });
 
-  test('probeWritable accepts a usable folder and rejects an unusable one', () async {
-    expect(await ScanStore.probeWritable('${root.path}/fresh'), isNull);
+  test(
+    'probeWritable accepts a usable folder and rejects an unusable one',
+    () async {
+      expect(await ScanStore.probeWritable('${root.path}/fresh'), isNull);
 
-    // A path occupied by a file cannot become a directory — portable stand-in
-    // for a read-only drive or a share that is mounted but not writable.
-    final blocker = File('${root.path}/blocker')..writeAsStringSync('x');
-    expect(await ScanStore.probeWritable(blocker.path), isNotNull);
-  });
+      // A path occupied by a file cannot become a directory — portable stand-in
+      // for a read-only drive or a share that is mounted but not writable.
+      final blocker = File('${root.path}/blocker')..writeAsStringSync('x');
+      expect(await ScanStore.probeWritable(blocker.path), isNotNull);
+    },
+  );
 
   test('a scan still counts when the extra copy fails', () async {
     // The extra path is blocked by a file — stands in for a stick that was
@@ -240,7 +242,6 @@ void main() {
     final store = await ScanStore.openAt(
       primary: primary,
       mirror: mirror,
-      export: export,
       extra: Directory(blocked.path),
     );
 
@@ -255,7 +256,7 @@ void main() {
     final store = await openStore();
     await scan(store, 'AAAA1111');
 
-    final target = await store.exportAll();
+    final target = await store.exportAll(export);
     final names = target
         .listSync()
         .map((e) => e.uri.pathSegments.last)

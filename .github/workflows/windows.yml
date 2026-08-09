@@ -3,7 +3,7 @@
 #
 # This exists because the machine this project is developed on is a Mac, and
 # Windows cannot be cross-compiled from macOS — the native half (the low-level
-# keyboard hook in windows/runner/kiosk_lock.cpp, and the CMake wiring around
+# keyboard hook in scanpoint/windows/runner/kiosk_lock.cpp, and the CMake wiring around
 # it) would otherwise ship having never been through a compiler. The Windows
 # runner template sets /W4 /WX, so any warning in that C++ fails the build,
 # which is exactly the signal wanted here.
@@ -27,6 +27,10 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+
+    defaults:
+      run:
+        working-directory: scanpoint
 
     permissions:
       # Needed by `gh release create` in the publish step below. If that step
@@ -101,7 +105,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: scan_point-windows-x64
-          path: build/windows/x64/runner/Release/
+          path: scanpoint/build/windows/x64/runner/Release/
           if-no-files-found: error
 
       - name: Package for release
@@ -126,4 +130,4 @@ jobs:
           gh release create "$env:GITHUB_REF_NAME" `
             "scan_point-windows-x64-$env:GITHUB_REF_NAME.zip" `
             --title "scan_point $env:GITHUB_REF_NAME" `
-            --notes-file .github/release-notes.md
+            --notes-file ../.github/release-notes.md

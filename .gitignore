@@ -41,6 +41,8 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+/scanpoint/build/
+/scanpoint/coverage/
 
 # Symbolication related
 app.*.symbols

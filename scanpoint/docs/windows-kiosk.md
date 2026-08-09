@@ -131,15 +131,15 @@ schtasks /create /tn "OrienteeringWatchdog" /tr "cmd /c tasklist | find /i \"sca
 - 若少了 `;` 或 `?` → 到讀卡機的設定工具補上 prefix / suffix。
 - 若尾巴多了換行 → 沒關係,程式會把 Enter 當成結尾接受,並在紀錄裡標成 `enterKey`。
   賽後看到大量 `enterKey` 就表示 `?` 沒設好,值得回頭修。
-- 若刷出來是中文或亂碼 → **不用管**,那是記事本經過輸入法的結果,本程式讀的是實體按鍵,
-  不受輸入法影響。要驗證請直接在本程式上刷。
+- 若記事本刷出來是中文或亂碼 → **不用管**,掃描模式會對本程式視窗停用 IME,並依實體按鍵解碼。
+  進入管理設定時 IME 會自動恢復,不需要人工切換中英文。
 
 ## 8. 賽後取資料
 
-管理台(`Ctrl+Shift+Alt+X` → PIN)→「匯出全部紀錄」,檔案會出現在:
+管理台(`Ctrl+Shift+Alt+X` → PIN)→「匯出全部紀錄」,選擇目的資料夾後,檔案會出現在:
 
 ```
-文件\OrienteeringSystem\export\export-<時間>\
+<所選資料夾>\export-<時間>\
 ```
 
 三份互相對帳的檔案:
@@ -148,7 +148,7 @@ schtasks /create /tn "OrienteeringWatchdog" /tr "cmd /c tasklist | find /i \"sca
 | --- | --- |
 | `scans.jsonl` | 主紀錄,一行一筆,逐筆 flush |
 | `scans-YYYY-MM-DD.csv` | 同樣內容的試算表格式 |
-| `文件\OrienteeringSystem\mirror\scans.jsonl` | 另一個磁碟位置的鏡像 |
+| `<scan_point.exe 同層>\mirror\scans.jsonl` | 固定鏡像 |
 
 `duplicate_of` 有值的那幾行是重複刷卡,計數時要排除。
 

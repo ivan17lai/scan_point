@@ -15,9 +15,7 @@ import 'package:window_manager/window_manager.dart';
 class KioskLock {
   KioskLock._();
 
-  static const MethodChannel _channel = MethodChannel(
-    'scan_point/kiosk',
-  );
+  static const MethodChannel _channel = MethodChannel('scan_point/kiosk');
 
   /// Locking a developer out of their own machine every time they press run is
   /// no way to work on this, so a debug build stays windowed and switchable
@@ -33,8 +31,10 @@ class KioskLock {
   static String? nativeError;
 
   static Future<void> engage() async {
+    nativeError = null;
+    await _setWindowsImeEnabled(false);
     if (!locksFully) {
-      nativeError = 'Debug 執行:未鎖定畫面(加 --dart-define=KIOSK=true 可測試鎖定)';
+      nativeError ??= 'Debug 執行:未鎖定畫面(加 --dart-define=KIOSK=true 可測試鎖定)';
       _engaged = false;
       return;
     }
@@ -54,7 +54,9 @@ class KioskLock {
 
   /// Drops the lock so the operator can reach the desktop after the PIN screen.
   static Future<void> release() async {
+    nativeError = null;
     await _invokeNative('disable');
+    await _setWindowsImeEnabled(true);
     await windowManager.setAlwaysOnTop(false);
     await windowManager.setSkipTaskbar(false);
     await windowManager.setPreventClose(false);
@@ -68,20 +70,38 @@ class KioskLock {
   /// Temporarily lets the window sit below others (admin panel is open) without
   /// giving up fullscreen — the runner-facing screen never shows the desktop.
   static Future<void> suspendKeyboardBlocking() async {
-    if (!locksFully) return;
-    await _invokeNative('disable');
+    nativeError = null;
+    if (locksFully) {
+      await _invokeNative('disable');
+      // IME candidate and language-switcher windows belong to Windows, not this
+      // process. Leaving the kiosk window topmost can hide them behind Flutter.
+      await windowManager.setAlwaysOnTop(false);
+    }
+    await _setWindowsImeEnabled(true);
+    if (!locksFully) {
+      nativeError ??= 'Debug 執行:未鎖定畫面(加 --dart-define=KIOSK=true 可測試鎖定)';
+    }
   }
 
   static Future<void> resumeKeyboardBlocking() async {
-    if (!locksFully) return;
-    await _invokeNative('enable');
+    nativeError = null;
+    if (locksFully) {
+      await windowManager.setAlwaysOnTop(true);
+      await windowManager.focus();
+      await _invokeNative('enable');
+    }
+    await _setWindowsImeEnabled(false);
+  }
+
+  static Future<void> _setWindowsImeEnabled(bool enabled) async {
+    if (!Platform.isWindows) return;
+    await _invokeNative(enabled ? 'enableIme' : 'disableIme');
   }
 
   static Future<void> _invokeNative(String method) async {
     if (!Platform.isWindows && !Platform.isMacOS) return;
     try {
       await _channel.invokeMethod<void>(method);
-      nativeError = null;
     } on MissingPluginException {
       nativeError = '原生鎖定未載入(平台程式碼未編入)';
     } catch (e) {

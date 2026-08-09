@@ -11,7 +11,6 @@ class StationConfig {
     this.uploadUrl = '',
     this.uploadToken = '',
     this.extraDir = '',
-    this.exportDir = '',
   });
 
   /// An additional folder to copy the log into — typically a USB stick. Empty
@@ -23,9 +22,6 @@ class StationConfig {
   /// station that silently stops recording is the worst failure this system
   /// has, so its destination must always be mounted and always writable.
   final String extraDir;
-
-  /// Where "匯出全部紀錄" writes. Empty means the default under documents.
-  final String exportDir;
 
   /// Ships in public source, so it protects nothing on its own. The admin panel
   /// says so in as many words while it is still in use.
@@ -53,7 +49,6 @@ class StationConfig {
     String? uploadUrl,
     String? uploadToken,
     String? extraDir,
-    String? exportDir,
   }) => StationConfig(
     stationId: stationId ?? this.stationId,
     stationName: stationName ?? this.stationName,
@@ -61,7 +56,6 @@ class StationConfig {
     uploadUrl: uploadUrl ?? this.uploadUrl,
     uploadToken: uploadToken ?? this.uploadToken,
     extraDir: extraDir ?? this.extraDir,
-    exportDir: exportDir ?? this.exportDir,
   );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -71,7 +65,6 @@ class StationConfig {
     'upload_url': uploadUrl,
     'upload_token': uploadToken,
     'extra_dir': extraDir,
-    'export_dir': exportDir,
   };
 
   static StationConfig fromJson(Map<String, dynamic> json) {
@@ -93,7 +86,6 @@ class StationConfig {
       // replaced the mirror instead of adding to it.
       extraDir:
           json['extra_dir'] as String? ?? json['mirror_dir'] as String? ?? '',
-      exportDir: json['export_dir'] as String? ?? '',
     );
   }
 }

@@ -19,26 +19,20 @@ class ScanOutcome {
   bool get isDuplicate => firstSeenAt != null;
 }
 
-/// Append-only, triple-written log.
+/// Append-only, redundantly written log.
 ///
 /// No database on purpose. At an unattended station the realistic failure is a
 /// flat battery or someone yanking the power, and a line-buffered text file that
 /// is flushed per record degrades to "the last line might be short" — whereas a
-/// half-written database page can take the whole file with it. Three copies in
-/// two directories means a lost card is recoverable by reconciliation.
+/// half-written database page can take the whole file with it. Independent
+/// copies mean a lost card is recoverable by reconciliation.
 class ScanStore {
-  ScanStore._(
-    this._primaryDir,
-    this._mirrorDir,
-    this._exportDir,
-    this._extraDir,
-  );
+  ScanStore._(this._primaryDir, this._mirrorDir, this._extraDir);
 
   final Directory _primaryDir;
   final Directory _mirrorDir;
-  final Directory _exportDir;
 
-  /// Optional fourth copy, chosen by the operator — typically a USB stick.
+  /// Optional third copy, chosen by the operator — typically a USB stick.
   ///
   /// Additive, never a redirect: the two default copies keep being written
   /// exactly as before. Unplugging the stick therefore costs nothing that
@@ -60,7 +54,6 @@ class ScanStore {
 
   Directory get primaryDir => _primaryDir;
   Directory get mirrorDir => _mirrorDir;
-  Directory get exportDir => _exportDir;
   Directory? get extraDir => _extraDir;
 
   /// Where the extra copy for [stationId] goes, or null when none is set.
@@ -94,6 +87,10 @@ class ScanStore {
 
   int get totalLines => _records.length;
 
+  /// Complete scan history, newest first.
+  List<ScanRecord> get history =>
+      List<ScanRecord>.unmodifiable(_records.reversed);
+
   List<ScanRecord> recentFor(String stationId, {int limit = 12}) => _records
       .where((r) => r.stationId == stationId)
       .toList()
@@ -103,34 +100,20 @@ class ScanStore {
 
   /// Opens the store.
   ///
-  /// [extraDir] adds a fourth copy alongside the two defaults; it never
-  /// replaces them. [exportOverride] does redirect, because export is a
-  /// one-shot operator action with no redundancy role.
-  static Future<ScanStore> open({
-    String? extraDir,
-    String? exportOverride,
-  }) async {
+  /// [extraDir] adds a third copy alongside the two defaults; it never
+  /// replaces them. The mirror lives in a "mirror" folder beside the running
+  /// executable so the portable deployment and its backup stay together.
+  static Future<ScanStore> open({String? extraDir}) async {
     final support = await getApplicationSupportDirectory();
-    final documents = await getApplicationDocumentsDirectory();
-
-    final export = exportOverride != null && exportOverride.trim().isNotEmpty
-        ? Directory(exportOverride.trim())
-        : Directory('${documents.path}/OrienteeringSystem/export');
+    final executableDir = File(Platform.resolvedExecutable).parent;
 
     return openAt(
       primary: Directory('${support.path}/data'),
-      mirror: Directory('${documents.path}/OrienteeringSystem/mirror'),
-      export: export,
+      mirror: Directory('${executableDir.path}/mirror'),
       extra: extraDir != null && extraDir.trim().isNotEmpty
           ? Directory(extraDir.trim())
           : null,
     );
-  }
-
-  /// Default export location, for showing what "reset to default" means.
-  static Future<String> defaultExportDir() async {
-    final documents = await getApplicationDocumentsDirectory();
-    return '${documents.path}/OrienteeringSystem/export';
   }
 
   /// Confirms a chosen folder can actually be written to, by writing to it.
@@ -207,26 +190,19 @@ class ScanStore {
   static Future<ScanStore> openAt({
     required Directory primary,
     required Directory mirror,
-    required Directory export,
     Directory? extra,
   }) async {
-    // Only the primary is allowed to be fatal. The extra copy may point at a
-    // USB stick nobody remembered to plug in, and the export folder at a
-    // network share that is down — neither is a reason to refuse to record
-    // scans at an unattended control point.
+    // Only the primary is allowed to be fatal. The mirror may be beside an EXE
+    // in a read-only folder, and the extra copy may point at an absent USB
+    // stick — neither is a reason to refuse to record scans.
     await primary.create(recursive: true);
 
-    final store = ScanStore._(primary, mirror, export, extra);
-    for (final dir in [mirror, export, ?extra]) {
+    final store = ScanStore._(primary, mirror, extra);
+    for (final dir in [mirror, ?extra]) {
       try {
         await dir.create(recursive: true);
       } catch (e) {
-        store.lastWriteError =
-            '${dir == mirror
-                ? '鏡像'
-                : dir == export
-                ? '匯出'
-                : '額外備份'}資料夾無法使用:$e';
+        store.lastWriteError = '${dir == mirror ? '鏡像' : '額外備份'}資料夾無法使用:$e';
       }
     }
 
@@ -353,14 +329,14 @@ class ScanStore {
     return anyOk;
   }
 
-  /// Copies every log file into the export folder under a timestamped name.
-  Future<Directory> exportAll() async {
+  /// Copies every log file into [destination] under a timestamped folder.
+  Future<Directory> exportAll(Directory destination) async {
     final stamp = DateTime.now()
         .toIso8601String()
         .replaceAll(':', '')
         .split('.')
         .first;
-    final target = Directory('${_exportDir.path}/export-$stamp');
+    final target = Directory('${destination.path}/export-$stamp');
     await target.create(recursive: true);
     for (final entity in _primaryDir.listSync()) {
       if (entity is File) {

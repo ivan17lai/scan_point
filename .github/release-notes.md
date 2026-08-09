@@ -11,8 +11,7 @@ Windows x64,免安裝。下載 zip 解壓縮,整個資料夾複製到現場機�
   "pin": "246810",
   "upload_url": "",
   "upload_token": "",
-  "extra_dir": "",
-  "export_dir": ""
+  "extra_dir": ""
 }
 ```
 
@@ -28,4 +27,4 @@ Windows x64,免安裝。下載 zip 解壓縮,整個資料夾複製到現場機�
 | 離開程式 | 管理台 →「解除鎖定並關閉程式」 |
 
 完整的鎖定設定、開機自動啟動、當機重啟與讀卡機檢查表,見
-[部署文件](https://github.com/ivan17lai/scan_point/blob/main/docs/windows-kiosk.md)。
+[部署文件](https://github.com/ivan17lai/scan_point/blob/main/scanpoint/docs/windows-kiosk.md)。

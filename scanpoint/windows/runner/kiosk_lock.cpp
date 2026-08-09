@@ -1,6 +1,7 @@
 #include "kiosk_lock.h"
 
 #include <windows.h>
+#include <imm.h>
 
 #include <flutter/method_channel.h>
 #include <flutter/standard_method_codec.h>
@@ -14,8 +15,20 @@ namespace {
 constexpr char kChannelName[] = "scan_point/kiosk";
 
 HHOOK g_hook = nullptr;
+HWND g_flutter_window = nullptr;
 
 bool IsDown(int vk) { return (GetAsyncKeyState(vk) & 0x8000) != 0; }
+
+bool SetImeEnabled(bool enabled) {
+  if (g_flutter_window == nullptr) {
+    return false;
+  }
+  // Removing the input context prevents an active Chinese IME from consuming
+  // scanner keystrokes as VK_PROCESSKEY. IACE_DEFAULT restores the window's
+  // normal context when the operator reaches text fields in the admin panel.
+  return ImmAssociateContextEx(
+             g_flutter_window, nullptr, enabled ? IACE_DEFAULT : 0) != FALSE;
+}
 
 // Runs on the runner's message loop for every keystroke on the machine while
 // the lock is engaged. Returning 1 swallows the key.
@@ -68,6 +81,8 @@ void Disable() {
 }
 
 void RegisterWithRegistrar(flutter::PluginRegistrarWindows* registrar) {
+  g_flutter_window = registrar->GetView()->GetNativeWindow();
+
   auto channel =
       std::make_shared<flutter::MethodChannel<flutter::EncodableValue>>(
           registrar->messenger(), kChannelName,
@@ -83,6 +98,18 @@ void RegisterWithRegistrar(flutter::PluginRegistrarWindows* registrar) {
         } else if (call.method_name() == "disable") {
           Disable();
           result->Success();
+        } else if (call.method_name() == "enableIme") {
+          if (SetImeEnabled(true)) {
+            result->Success();
+          } else {
+            result->Error("ime_context", "Unable to restore the IME context");
+          }
+        } else if (call.method_name() == "disableIme") {
+          if (SetImeEnabled(false)) {
+            result->Success();
+          } else {
+            result->Error("ime_context", "Unable to detach the IME context");
+          }
         } else {
           result->NotImplemented();
         }

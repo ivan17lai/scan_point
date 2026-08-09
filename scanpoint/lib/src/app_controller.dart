@@ -92,12 +92,9 @@ class AppController extends ChangeNotifier {
   bool exitRequested = false;
 
   static Future<AppController> create() async {
-    // Config first: it decides where the extra and export folders live.
+    // Config first: it decides whether an extra backup folder is enabled.
     final (configStore, config) = await ConfigStore.open();
-    final store = await ScanStore.open(
-      extraDir: config.extraDir,
-      exportOverride: config.exportDir,
-    );
+    final store = await ScanStore.open(extraDir: config.extraDir);
     final tones = await TonePlayer.create();
     final events = EventLog(_eventTargets(store, config.stationId));
 
@@ -277,37 +274,38 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool submitPin(String pin) {
+  Future<bool> submitPin(String pin) async {
     if (pin != _config.pin) {
       // The attempted value is never logged — only that an attempt failed, and
       // how long it was, which is enough to tell a typo from someone probing.
-      events.record(
+      await events.record(
         EventType.adminPinRejected,
         stationId: _config.stationId,
         detail: {'length': pin.length},
       );
       return false;
     }
-    events.record(EventType.adminUnlock, stationId: _config.stationId);
+
+    await events.record(EventType.adminUnlock, stationId: _config.stationId);
     _mode = AppMode.admin;
-    // Admin has text fields, so the IME is allowed to wake up here — and the
-    // native keyboard block has to come off or the operator cannot Alt+Tab to
-    // anything they might need.
-    KioskLock.suspendKeyboardBlocking();
+    // Wait until the native hook and topmost state are both released before
+    // exposing text fields. Otherwise Windows IME candidate windows can remain
+    // hidden behind the full-screen kiosk window.
+    await KioskLock.suspendKeyboardBlocking();
     notifyListeners();
     return true;
   }
 
-  void returnToKiosk() {
+  Future<void> returnToKiosk() async {
     if (_mode == AppMode.admin) {
-      events.record(EventType.adminExit, stationId: _config.stationId);
+      await events.record(EventType.adminExit, stationId: _config.stationId);
     }
     _mode = AppMode.kiosk;
     _state = KioskState.idle;
     _cardId = null;
     _fault = null;
     _decoder.cancel();
-    KioskLock.resumeKeyboardBlocking();
+    await KioskLock.resumeKeyboardBlocking();
     notifyListeners();
   }
 
@@ -336,25 +334,20 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Sets the extra backup folder and/or the export folder.
+  /// Sets or clears the optional extra backup folder.
   ///
   /// Returns null on success, or a message for the operator. The folder is
   /// proved writable before anything changes, and the whole log is copied into
-  /// a newly chosen extra folder so it holds the event rather than only the
-  /// part of it that happens after the stick went in.
-  Future<String?> changeStorage({String? extraDir, String? exportDir}) async {
-    final next = _config.copyWith(extraDir: extraDir, exportDir: exportDir);
+  /// a newly chosen folder so it holds the entire event.
+  Future<String?> changeStorage({required String extraDir}) async {
+    final next = _config.copyWith(extraDir: extraDir);
 
-    for (final candidate in [next.extraDir, next.exportDir]) {
-      if (candidate.trim().isEmpty) continue;
-      final problem = await ScanStore.probeWritable(candidate);
-      if (problem != null) return '無法寫入 $candidate — $problem';
+    if (next.extraDir.trim().isNotEmpty) {
+      final problem = await ScanStore.probeWritable(next.extraDir);
+      if (problem != null) return '無法寫入 ${next.extraDir} — $problem';
     }
 
-    final reopened = await ScanStore.open(
-      extraDir: next.extraDir,
-      exportOverride: next.exportDir,
-    );
+    final reopened = await ScanStore.open(extraDir: next.extraDir);
     final seedProblem = await reopened.seedExtraCopy();
 
     _store = reopened;
@@ -366,18 +359,16 @@ class AppController extends ChangeNotifier {
       stationId: next.stationId,
       detail: {
         'extra_dir': next.extraDir.isEmpty ? '(未設定)' : next.extraDir,
-        'export_dir': next.exportDir.isEmpty ? '(預設)' : next.exportDir,
         'seed_error': ?seedProblem,
       },
     );
     notifyListeners();
 
-    return seedProblem == null
-        ? null
-        : '位置已更新,但既有紀錄複製失敗:$seedProblem';
+    return seedProblem == null ? null : '位置已更新,但既有紀錄複製失敗:$seedProblem';
   }
 
   List<ScanRecord> get recentScans => _store.recentFor(_config.stationId);
+  List<ScanRecord> get scanHistory => _store.history;
 
   Future<void> requestExit() async {
     // Awaited so the last line reaches disk before main() tears the process
