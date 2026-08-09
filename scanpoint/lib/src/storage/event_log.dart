@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../model/stable_record_id.dart';
+
 /// What happened. Kept as a closed set so the log can be filtered after an
 /// event without guessing at free-text strings.
 enum EventType {
@@ -25,12 +27,14 @@ enum EventType {
 /// One decoded line from the operational history.
 class EventRecord {
   const EventRecord({
+    required this.eventId,
     required this.at,
     required this.type,
     required this.stationId,
     required this.detail,
   });
 
+  final String eventId;
   final DateTime at;
   final String type;
   final String? stationId;
@@ -38,20 +42,41 @@ class EventRecord {
 
   static EventRecord fromJson(Map<String, dynamic> json) {
     final rawDetail = json['detail'];
+    final detail = rawDetail is Map
+        ? <String, Object?>{
+            for (final entry in rawDetail.entries)
+              entry.key.toString(): entry.value,
+          }
+        : const <String, Object?>{};
+    final at =
+        DateTime.tryParse(json['at_local'] as String? ?? '') ??
+        DateTime.fromMillisecondsSinceEpoch(0);
+    final type = json['type'] as String? ?? 'unknown';
+    final stationId = json['station_id'] as String?;
     return EventRecord(
-      at:
-          DateTime.tryParse(json['at_local'] as String? ?? '') ??
-          DateTime.fromMillisecondsSinceEpoch(0),
-      type: json['type'] as String? ?? 'unknown',
-      stationId: json['station_id'] as String?,
-      detail: rawDetail is Map
-          ? <String, Object?>{
-              for (final entry in rawDetail.entries)
-                entry.key.toString(): entry.value,
-            }
-          : const <String, Object?>{},
+      eventId:
+          json['event_id'] as String? ??
+          stableRecordId('event', [
+            stationId,
+            type,
+            json['at_utc'] ?? json['at_local'],
+            detail,
+          ]),
+      at: at,
+      type: type,
+      stationId: stationId,
+      detail: detail,
     );
   }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'event_id': eventId,
+    'station_id': stationId,
+    'type': type,
+    'at_local': at.toIso8601String(),
+    'at_utc': at.toUtc().toIso8601String(),
+    if (detail.isNotEmpty) 'detail': detail,
+  };
 }
 
 /// Append-only record of everything the software did, next to the scan log.
@@ -83,35 +108,33 @@ class EventLog {
 
   set targets(List<Directory> value) => _targets = value;
 
-  /// Reads the most complete surviving operational log, newest first.
+  /// Reads the EXE-side primary operational log, newest first.
   ///
-  /// Invalid lines are skipped because a power loss can leave only the final
-  /// JSONL line incomplete while every earlier record remains usable.
+  /// Other targets are append-only safety copies. They are intentionally not
+  /// used as automatic fallbacks, so old archive data cannot silently alter the
+  /// live station state.
   Future<List<EventRecord>> history() async {
-    var best = <EventRecord>[];
-    for (final dir in _targets) {
-      final file = File('${dir.path}/$fileName');
-      if (!file.existsSync()) continue;
+    if (_targets.isEmpty) return const <EventRecord>[];
+    final file = File('${_targets.first.path}/$fileName');
+    if (!file.existsSync()) return const <EventRecord>[];
 
-      final loaded = <EventRecord>[];
-      try {
-        for (final line in await file.readAsLines()) {
-          final trimmed = line.trim();
-          if (trimmed.isEmpty) continue;
-          try {
-            loaded.add(
-              EventRecord.fromJson(jsonDecode(trimmed) as Map<String, dynamic>),
-            );
-          } catch (_) {
-            // Keep every intact line around a torn or malformed one.
-          }
+    final loaded = <EventRecord>[];
+    try {
+      for (final line in await file.readAsLines()) {
+        final trimmed = line.trim();
+        if (trimmed.isEmpty) continue;
+        try {
+          loaded.add(
+            EventRecord.fromJson(jsonDecode(trimmed) as Map<String, dynamic>),
+          );
+        } catch (_) {
+          // Keep every intact line around a torn or malformed one.
         }
-      } catch (_) {
-        continue;
       }
-      if (loaded.length > best.length) best = loaded;
+    } catch (_) {
+      return const <EventRecord>[];
     }
-    return List<EventRecord>.unmodifiable(best.reversed);
+    return List<EventRecord>.unmodifiable(loaded.reversed);
   }
 
   Future<void> record(
@@ -120,17 +143,23 @@ class EventLog {
     Map<String, Object?> detail = const {},
   }) async {
     final now = DateTime.now();
+    final safeDetail = detail.isEmpty
+        ? const <String, Object?>{}
+        : redact(detail);
     final line = <String, Object?>{
+      'event_id': stableRecordId('event', [
+        stationId,
+        type.wire,
+        now.toUtc().toIso8601String(),
+        safeDetail,
+      ]),
       'at_local': now.toIso8601String(),
       'at_utc': now.toUtc().toIso8601String(),
       'type': type.wire,
       'station_id': ?stationId,
-      if (detail.isNotEmpty) 'detail': redact(detail),
+      if (safeDetail.isNotEmpty) 'detail': safeDetail,
     };
     final encoded = '${jsonEncode(line)}\n';
-    final safeDetail = detail.isEmpty
-        ? const <String, Object?>{}
-        : redact(detail);
     final csvRow = [
       _quoteCsv(now.toIso8601String()),
       _quoteCsv(now.toUtc().toIso8601String()),

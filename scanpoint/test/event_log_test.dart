@@ -95,8 +95,8 @@ void main() {
   });
   test('history reads newest first and skips a torn final line', () async {
     final app = Directory('${root.path}/app');
-    final mirror = Directory('${root.path}/mirror');
-    final log = EventLog([app, mirror]);
+    final archive = Directory('${root.path}/archive');
+    final log = EventLog([app, archive]);
 
     await log.record(EventType.appStart, stationId: 'CP3');
     await log.record(
@@ -108,11 +108,18 @@ void main() {
       '${app.path}/${EventLog.fileName}',
     ).writeAsString('{"incomplete":', mode: FileMode.append);
 
+    await File('${archive.path}/${EventLog.fileName}').writeAsString(
+      '${jsonEncode({'event_id': 'archive-only', 'at_local': DateTime.now().toIso8601String(), 'at_utc': DateTime.now().toUtc().toIso8601String(), 'type': 'archive_only', 'station_id': 'CP3'})}\n',
+      mode: FileMode.append,
+    );
+
     final history = await log.history();
 
-    expect(history, hasLength(2));
+    expect(history, hasLength(2), reason: 'AppData archive 的額外事件不得混入正常歷史');
     expect(history.first.type, EventType.scanFail.wire);
     expect(history.first.detail['code'], 'E-02');
     expect(history.last.type, EventType.appStart.wire);
+    expect(history.first.eventId, startsWith('event-'));
+    expect(history.first.toJson()['event_id'], history.first.eventId);
   });
 }

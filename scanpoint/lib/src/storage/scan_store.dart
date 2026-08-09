@@ -27,10 +27,10 @@ class ScanOutcome {
 /// half-written database page can take the whole file with it. Independent
 /// copies mean a lost card is recoverable by reconciliation.
 class ScanStore {
-  ScanStore._(this._primaryDir, this._mirrorDir, this._extraDir);
+  ScanStore._(this._primaryDir, this._archiveDir, this._extraDir);
 
   final Directory _primaryDir;
-  final Directory _mirrorDir;
+  final Directory _archiveDir;
 
   /// Optional third copy, chosen by the operator — typically a USB stick.
   ///
@@ -53,7 +53,7 @@ class ScanStore {
   static const String _logName = 'scans.jsonl';
 
   Directory get primaryDir => _primaryDir;
-  Directory get mirrorDir => _mirrorDir;
+  Directory get archiveDir => _archiveDir;
   Directory? get extraDir => _extraDir;
 
   /// Where the extra copy for [stationId] goes, or null when none is set.
@@ -78,9 +78,6 @@ class ScanStore {
     return cleaned.isEmpty ? 'unknown' : cleaned;
   }
 
-  /// The two copies the machine owns and reads back on load.
-  List<Directory> get _ownedTargets => [_primaryDir, _mirrorDir];
-
   /// Scans recorded at [stationId], duplicates excluded.
   int countFor(String stationId) =>
       _records.where((r) => r.stationId == stationId && !r.isDuplicate).length;
@@ -101,19 +98,69 @@ class ScanStore {
   /// Opens the store.
   ///
   /// [extraDir] adds a third copy alongside the two defaults; it never
-  /// replaces them. The mirror lives in a "mirror" folder beside the running
-  /// executable so the portable deployment and its backup stay together.
+  /// replaces them. The primary lives beside the executable; the AppData copy
+  /// is an append-only archive that is never loaded automatically.
   static Future<ScanStore> open({String? extraDir}) async {
     final support = await getApplicationSupportDirectory();
     final executableDir = File(Platform.resolvedExecutable).parent;
+    final primary = Directory('${executableDir.path}/data');
+    // Keep the established AppData/data location so existing history remains
+    // present. It is now an append-only archive, not a normal read source.
+    final archive = Directory('${support.path}/data');
+
+    await migrateLegacyLayout(
+      legacyArchive: archive,
+      primary: primary,
+      marker: File('${support.path}/.storage-layout-v2'),
+    );
 
     return openAt(
-      primary: Directory('${support.path}/data'),
-      mirror: Directory('${executableDir.path}/mirror'),
+      primary: primary,
+      archive: archive,
       extra: extraDir != null && extraDir.trim().isNotEmpty
           ? Directory(extraDir.trim())
           : null,
     );
+  }
+
+  /// Copies the previous AppData primary into the new EXE-side primary once.
+  ///
+  /// The marker prevents this from becoming an automatic recovery mechanism:
+  /// if the EXE-side data is later removed or damaged, the archive is not read
+  /// or copied back automatically.
+  static Future<void> migrateLegacyLayout({
+    required Directory legacyArchive,
+    required Directory primary,
+    required File marker,
+  }) async {
+    if (marker.existsSync()) return;
+    await primary.create(recursive: true);
+
+    var complete = true;
+    if (legacyArchive.existsSync()) {
+      for (final entity in legacyArchive.listSync()) {
+        if (entity is! File) continue;
+        final target = File('${primary.path}/${entity.uri.pathSegments.last}');
+        try {
+          if (!target.existsSync() || target.lengthSync() == 0) {
+            await entity.copy(target.path);
+          }
+        } catch (_) {
+          complete = false;
+        }
+      }
+    }
+
+    if (!complete) return;
+    try {
+      await marker.parent.create(recursive: true);
+      await marker.writeAsString(
+        DateTime.now().toUtc().toIso8601String(),
+        flush: true,
+      );
+    } catch (_) {
+      // Repeating a missing-file-only migration is safe on the next launch.
+    }
   }
 
   /// Confirms a chosen folder can actually be written to, by writing to it.
@@ -189,33 +236,31 @@ class ScanStore {
   /// folder instead of the real app-support location.
   static Future<ScanStore> openAt({
     required Directory primary,
-    required Directory mirror,
+    required Directory archive,
     Directory? extra,
   }) async {
-    // Only the primary is allowed to be fatal. The mirror may be beside an EXE
-    // in a read-only folder, and the extra copy may point at an absent USB
-    // stick — neither is a reason to refuse to record scans.
+    // The EXE-side primary is the active data source and must be available.
     await primary.create(recursive: true);
 
-    final store = ScanStore._(primary, mirror, extra);
-    for (final dir in [mirror, ?extra]) {
+    final store = ScanStore._(primary, archive, extra);
+    for (final dir in [archive, ?extra]) {
       try {
         await dir.create(recursive: true);
       } catch (e) {
-        store.lastWriteError = '${dir == mirror ? '鏡像' : '額外備份'}資料夾無法使用:$e';
+        store.lastWriteError =
+            '${dir == archive ? 'AppData 常駐紀錄' : '額外備份'}資料夾無法使用:$e';
       }
     }
 
-    await store._load();
+    await store._loadPrimary();
     return store;
   }
 
-  Future<void> _load() async {
-    // Whichever copy holds the most intact records wins. That is the whole
-    // reason for keeping more than one: any of them may be the survivor.
-    for (final dir in _ownedTargets) {
-      final file = File('${dir.path}/$_logName');
-      if (!file.existsSync()) continue;
+  Future<void> _loadPrimary() async {
+    // Deliberately do not fall back to the AppData archive. It is continuously
+    // written for manual recovery only and must not silently change live state.
+    final file = File('${_primaryDir.path}/$_logName');
+    if (file.existsSync()) {
       final loaded = <ScanRecord>[];
       for (final line in await file.readAsLines()) {
         final trimmed = line.trim();
@@ -228,11 +273,9 @@ class ScanStore {
           // A torn final line from a power cut. Everything before it is intact.
         }
       }
-      if (loaded.length > _records.length) {
-        _records
-          ..clear()
-          ..addAll(loaded);
-      }
+      _records
+        ..clear()
+        ..addAll(loaded);
     }
 
     _firstSeen.clear();
@@ -294,7 +337,7 @@ class ScanStore {
     // (folder, label, also writes the CSV)
     final targets = <(Directory, String, bool)>[
       (_primaryDir, '主檔', true),
-      (_mirrorDir, '鏡像', true),
+      (_archiveDir, 'AppData 常駐紀錄', true),
       if (extra != null) (extra, '額外備份', true),
     ];
 

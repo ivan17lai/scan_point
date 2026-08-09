@@ -109,13 +109,14 @@ KIOSK_RENDER_DIR=/tmp/kiosk-shots flutter test test/kiosk_face_render_test.dart
 
 | 位置 | 說明 |
 | --- | --- |
-| `<Application Support>/data/` | 主紀錄 |
-| `<scan_point.exe 同層>/mirror/` | 固定鏡像 |
+| `<scan_point.exe 同層>/data/` | 日常讀取、計數與匯出的主記錄 |
+| `<Application Support>/data/` | 持續追加且不自動清空的 AppData 常駐紀錄 |
 | `<指定資料夾>/scan_point/<站點編號>/` | 可選的額外備份,見下節 |
 
 用 append-only 純文字而不是資料庫,是因為無人站點最實際的故障是斷電。文字檔最壞的情況是
-「最後一行寫到一半」,前面全部完好;資料庫寫到一半的頁面可能整份帶走。啟動時如果主檔比鏡像
-短,會自動改用鏡像。
+「最後一行寫到一半」,前面全部完好;資料庫寫到一半的頁面可能整份帶走。正常啟動只讀 EXE 旁的
+主記錄；AppData 常駐紀錄只供必要時手動救援,不會自動復原或混入現場計數。第一次升級到此版時,
+舊 AppData 主資料只會遷移到 EXE 主記錄一次。
 
 ### 額外備份到隨身碟
 

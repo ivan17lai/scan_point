@@ -8,11 +8,11 @@ import 'package:scan_point/src/storage/scan_store.dart';
 void main() {
   late Directory root;
   late Directory primary;
-  late Directory mirror;
+  late Directory archive;
   late Directory export;
 
   Future<ScanStore> openStore() =>
-      ScanStore.openAt(primary: primary, mirror: mirror);
+      ScanStore.openAt(primary: primary, archive: archive);
 
   Future<ScanOutcome> scan(ScanStore store, String card) => store.record(
     cardId: card,
@@ -25,29 +25,31 @@ void main() {
   setUp(() {
     root = Directory.systemTemp.createTempSync('scan_store_test');
     primary = Directory('${root.path}/primary');
-    mirror = Directory('${root.path}/mirror');
+    archive = Directory('${root.path}/archive');
     export = Directory('${root.path}/export');
   });
 
   tearDown(() => root.deleteSync(recursive: true));
 
-  test('writes every scan to the primary, the mirror, and the CSV', () async {
+  test('writes every scan to the primary, the archive, and the CSV', () async {
     final store = await openStore();
     await scan(store, 'A7F3C210');
 
     final primaryLines = File(
       '${primary.path}/scans.jsonl',
     ).readAsLinesSync().where((l) => l.trim().isNotEmpty);
-    final mirrorLines = File(
-      '${mirror.path}/scans.jsonl',
+    final archiveLines = File(
+      '${archive.path}/scans.jsonl',
     ).readAsLinesSync().where((l) => l.trim().isNotEmpty);
 
     expect(primaryLines, hasLength(1));
-    expect(mirrorLines, hasLength(1));
-    expect(jsonDecode(primaryLines.first)['card'], 'A7F3C210');
+    expect(archiveLines, hasLength(1));
+    final stored = jsonDecode(primaryLines.first) as Map<String, dynamic>;
+    expect(stored['card'], 'A7F3C210');
+    expect(stored['record_id'], startsWith('scan-'));
 
-    // The mirror is a full copy, CSV included — not a partial one.
-    for (final dir in [primary, mirror]) {
+    // The archive is a full copy, CSV included — not a partial one.
+    for (final dir in [primary, archive]) {
       final csv = dir.listSync().whereType<File>().firstWhere(
         (f) => f.path.endsWith('.csv'),
         orElse: () => throw StateError('${dir.path} 少了 CSV'),
@@ -114,19 +116,60 @@ void main() {
 
       final reopened = await ScanStore.openAt(
         primary: primary,
-        mirror: Directory('${root.path}/empty-mirror'),
+        archive: Directory('${root.path}/empty-archive'),
       );
       expect(reopened.countFor('CP3'), 2);
     },
   );
 
-  test('falls back to the mirror when the primary is missing', () async {
+  test('does not load the archive when the primary is missing', () async {
     final store = await openStore();
     await scan(store, 'AAAA1111');
     File('${primary.path}/scans.jsonl').deleteSync();
 
     final reopened = await openStore();
-    expect(reopened.countFor('CP3'), 1);
+    expect(reopened.countFor('CP3'), 0);
+    expect(
+      File('${archive.path}/scans.jsonl').existsSync(),
+      isTrue,
+      reason: '常駐紀錄仍保留，但不自動還原',
+    );
+  });
+
+  test('legacy AppData files migrate only once', () async {
+    final legacy = Directory('${root.path}/legacy')..createSync();
+    final migratedPrimary = Directory('${root.path}/migrated-primary');
+    final marker = File('${root.path}/.storage-layout-v2');
+    File('${legacy.path}/scans.jsonl').writeAsStringSync('scan-history');
+    File('${legacy.path}/events.jsonl').writeAsStringSync('event-history');
+
+    await ScanStore.migrateLegacyLayout(
+      legacyArchive: legacy,
+      primary: migratedPrimary,
+      marker: marker,
+    );
+
+    expect(
+      File('${migratedPrimary.path}/scans.jsonl').readAsStringSync(),
+      'scan-history',
+    );
+    expect(
+      File('${migratedPrimary.path}/events.jsonl').readAsStringSync(),
+      'event-history',
+    );
+    expect(marker.existsSync(), isTrue);
+
+    File('${migratedPrimary.path}/scans.jsonl').deleteSync();
+    await ScanStore.migrateLegacyLayout(
+      legacyArchive: legacy,
+      primary: migratedPrimary,
+      marker: marker,
+    );
+    expect(
+      File('${migratedPrimary.path}/scans.jsonl').existsSync(),
+      isFalse,
+      reason: '標記存在後不得把 archive 自動復原回主記錄',
+    );
   });
 
   Iterable<String> linesOf(String path) =>
@@ -143,7 +186,7 @@ void main() {
       final usb = Directory('${root.path}/usb');
       final withUsb = await ScanStore.openAt(
         primary: primary,
-        mirror: mirror,
+        archive: archive,
         extra: usb,
       );
       expect(await withUsb.seedExtraCopy(), isNull);
@@ -166,9 +209,9 @@ void main() {
 
       await scan(withUsb, 'CCCC3333');
 
-      // Four copies now, and the two defaults are untouched by the addition.
+      // Three copies now, and the two defaults are untouched by the addition.
       expect(linesOf('${primary.path}/scans.jsonl'), hasLength(3));
-      expect(linesOf('${mirror.path}/scans.jsonl'), hasLength(3));
+      expect(linesOf('${archive.path}/scans.jsonl'), hasLength(3));
       expect(linesOf('${stationDir.path}/scans.jsonl'), hasLength(3));
     },
   );
@@ -179,7 +222,7 @@ void main() {
     Future<void> runStation(String station) async {
       final store = await ScanStore.openAt(
         primary: Directory('${root.path}/$station-primary'),
-        mirror: Directory('${root.path}/$station-mirror'),
+        archive: Directory('${root.path}/$station-archive'),
         extra: usb,
       );
       await store.record(
@@ -209,7 +252,7 @@ void main() {
     final usb = Directory('${root.path}/usb');
     final store = await ScanStore.openAt(
       primary: primary,
-      mirror: mirror,
+      archive: archive,
       extra: usb,
     );
     await scan(store, 'AAAA1111');
@@ -220,7 +263,7 @@ void main() {
 
     expect(without.countFor('CP3'), 2);
     expect(linesOf('${primary.path}/scans.jsonl'), hasLength(2));
-    expect(linesOf('${mirror.path}/scans.jsonl'), hasLength(2));
+    expect(linesOf('${archive.path}/scans.jsonl'), hasLength(2));
   });
 
   test(
@@ -241,7 +284,7 @@ void main() {
     final blocked = File('${root.path}/blocked')..writeAsStringSync('x');
     final store = await ScanStore.openAt(
       primary: primary,
-      mirror: mirror,
+      archive: archive,
       extra: Directory(blocked.path),
     );
 

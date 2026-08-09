@@ -10,6 +10,7 @@ import '../audio/tone_player.dart';
 import '../model/scan_record.dart';
 import '../platform/kiosk_lock.dart';
 import '../storage/event_log.dart';
+import '../upload/apps_script_uploader.dart';
 import 'm3e/expressive_shape.dart';
 
 /// Operator surface behind the PIN: station identity, counts, export, upload,
@@ -128,36 +129,49 @@ class _AdminScreenState extends State<AdminScreen> {
     });
     try {
       final token = widget.controller.config.uploadToken.trim();
-      final response = await http
-          .post(
-            Uri.parse(url),
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-              if (token.isNotEmpty) 'Authorization': 'Bearer $token',
-            },
-            body: jsonEncode({
-              'station_id': widget.controller.config.stationId,
-              'station_name': widget.controller.config.stationName,
-              'uploaded_at': DateTime.now().toIso8601String(),
-              'records': widget.controller.store.toJsonList(),
-            }),
-          )
-          .timeout(const Duration(seconds: 30));
-      final ok = response.statusCode >= 200 && response.statusCode < 300;
+      final now = DateTime.now();
+      final operationHistory = await widget.controller.events.history();
+      final client = http.Client();
+      late final AppsScriptUploadResult result;
+      try {
+        result = await AppsScriptUploader(client)
+            .upload(
+              endpoint: Uri.parse(url),
+              payload: {
+                'schema_version': 1,
+                'api_key': token,
+                'batch_id':
+                    '${widget.controller.config.stationId}-'
+                    '${now.toUtc().microsecondsSinceEpoch}',
+                'station_id': widget.controller.config.stationId,
+                'station_name': widget.controller.config.stationName,
+                'uploaded_at': now.toIso8601String(),
+                'scans': widget.controller.store.toJsonList(),
+                'operations': operationHistory.reversed
+                    .map((event) => event.toJson())
+                    .toList(),
+              },
+            )
+            .timeout(const Duration(seconds: 30));
+      } finally {
+        client.close();
+      }
       await widget.controller.events.record(
         EventType.uploadRun,
         stationId: widget.controller.config.stationId,
         detail: {
           // Host only: the full URL can carry a query-string secret.
           'host': Uri.parse(url).host,
-          'status': response.statusCode,
+          'status': result.statusCode,
           'records': widget.controller.store.totalLines,
+          'accepted': result.accepted,
+          'duplicates': result.duplicates,
         },
       );
       setState(
-        () => _status = ok
-            ? '上傳成功(${widget.controller.store.totalLines} 筆)'
-            : '上傳失敗:HTTP ${response.statusCode}',
+        () => _status = result.ok
+            ? '上傳成功:${result.accepted} 筆新增、${result.duplicates} 筆略過'
+            : '上傳失敗:${result.error ?? 'HTTP ${result.statusCode}'}',
       );
     } catch (e) {
       await widget.controller.events.record(
@@ -747,11 +761,11 @@ class _AdminScreenState extends State<AdminScreen> {
                 ]),
                 const SizedBox(height: 24),
                 _section('儲存位置', [
-                  _kv('① 主資料夾（固定）', store.primaryDir.path),
+                  _kv('① EXE 主記錄（固定）', store.primaryDir.path),
                   Padding(
                     padding: const EdgeInsets.only(top: 2, bottom: 10),
                     child: Text(
-                      '保存掃描紀錄與系統操作紀錄，並提供 JSONL 與 CSV 格式。',
+                      '位於 scan_point.exe 同層的 data 資料夾，作為日常讀取與匯出的主記錄。',
                       style: TextStyle(
                         color: scheme.onSurfaceVariant,
                         fontSize: 13,
@@ -759,11 +773,11 @@ class _AdminScreenState extends State<AdminScreen> {
                       ),
                     ),
                   ),
-                  _kv('② 鏡像備份（固定）', store.mirrorDir.path),
+                  _kv('② AppData 常駐紀錄（固定）', store.archiveDir.path),
                   Padding(
                     padding: const EdgeInsets.only(top: 2, bottom: 16),
                     child: Text(
-                      '與主資料夾同步保存完整紀錄，位置固定在 scan_point.exe 同層的 mirror 資料夾。',
+                      '持續同步追加完整紀錄且不會自動清空；正常啟動不讀取，也不會自動還原到主記錄。',
                       style: TextStyle(
                         color: scheme.onSurfaceVariant,
                         fontSize: 13,
@@ -884,7 +898,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 '即時副本',
                 controller.config.extraDir.trim().isEmpty ? '2' : '3',
                 controller.config.extraDir.trim().isEmpty
-                    ? '主檔與固定鏡像'
+                    ? 'EXE 主檔與 AppData 常駐紀錄'
                     : '包含額外備份',
               ),
             ),

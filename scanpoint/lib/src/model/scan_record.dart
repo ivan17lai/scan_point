@@ -1,6 +1,8 @@
 import '../scanner/scan_decoder.dart';
+import 'stable_record_id.dart';
 
-/// One line of the log. Written identically to the primary store, the mirror,
+/// One line of the log. Written identically to the EXE-side primary and
+/// the AppData archive,
 /// and the CSV so the three copies can be reconciled after the event.
 class ScanRecord {
   const ScanRecord({
@@ -30,7 +32,15 @@ class ScanRecord {
 
   bool get isDuplicate => duplicateOf != null;
 
+  String get recordId => stableRecordId('scan', [
+    stationId,
+    sequence,
+    cardId,
+    at.toUtc().toIso8601String(),
+  ]);
+
   Map<String, dynamic> toJson() => <String, dynamic>{
+    'record_id': recordId,
     'seq': sequence,
     'card': cardId,
     'at_local': at.toIso8601String(),

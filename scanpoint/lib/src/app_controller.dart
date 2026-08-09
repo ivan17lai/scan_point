@@ -123,7 +123,7 @@ class AppController extends ChangeNotifier {
   /// copy that cannot answer the question.
   static List<Directory> _eventTargets(ScanStore store, String stationId) => [
     store.primaryDir,
-    store.mirrorDir,
+    store.archiveDir,
     ?store.extraDirFor(stationId),
   ];
 
