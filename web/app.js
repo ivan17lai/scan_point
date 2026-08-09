@@ -13,9 +13,19 @@ const elements = {
   stationUploadKey: document.querySelector("#station-upload-key"),
   stationForm: document.querySelector("#station-form"),
   formStatus: document.querySelector("#form-status"),
+  pageProgressLinks: document.querySelectorAll("[data-progress-section]"),
+  pageProgressNav: document.querySelector(".page-progress__nav"),
+  pageProgressBar: document.querySelector("#page-progress-bar"),
+  pageProgressLabel: document.querySelector("#page-progress-label"),
 };
 
 let codeGs = "";
+let progressFrame = 0;
+let lastProgressIndex = -1;
+const progressSections = Array.from(
+  elements.pageProgressLinks,
+  (link) => document.querySelector("#" + link.dataset.progressSection),
+);
 
 function setStatus(element, message, tone = "") {
   element.textContent = message;
@@ -105,6 +115,61 @@ async function loadCodeGs() {
   }
 }
 
+function updatePageProgress() {
+  const markerPosition = window.scrollY + window.innerHeight * 0.38;
+  let activeIndex = 0;
+
+  progressSections.forEach((section, index) => {
+    const sectionTop = section.getBoundingClientRect().top + window.scrollY;
+    if (section && sectionTop <= markerPosition) activeIndex = index;
+  });
+
+  const pageBottom = window.scrollY + window.innerHeight;
+  if (pageBottom >= document.documentElement.scrollHeight - 4) {
+    activeIndex = progressSections.length - 1;
+  }
+
+  if (activeIndex === lastProgressIndex) return;
+  lastProgressIndex = activeIndex;
+
+  elements.pageProgressLinks.forEach((link, index) => {
+    if (index === activeIndex) {
+      link.setAttribute("aria-current", "step");
+    } else {
+      link.removeAttribute("aria-current");
+    }
+  });
+
+  const completed = ((activeIndex + 1) / progressSections.length) * 100;
+  elements.pageProgressBar.style.width = completed + "%";
+  elements.pageProgressLabel.value =
+    "步驟 " + (activeIndex + 1) + " / " + progressSections.length;
+
+  if (window.matchMedia("(max-width: 1080px)").matches) {
+    const activeLink = elements.pageProgressLinks[activeIndex];
+    const left =
+      activeLink.offsetLeft -
+      (elements.pageProgressNav.clientWidth - activeLink.offsetWidth) / 2;
+    elements.pageProgressNav.scrollTo({
+      left: Math.max(0, left),
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
+  }
+}
+
+function schedulePageProgressUpdate() {
+  if (progressFrame) return;
+  progressFrame = window.requestAnimationFrame(() => {
+    progressFrame = 0;
+    updatePageProgress();
+  });
+}
+
+window.addEventListener("scroll", schedulePageProgressUpdate, {passive: true});
+window.addEventListener("resize", schedulePageProgressUpdate);
+
 elements.copyCode.addEventListener("click", async () => {
   const copied = await copyText(codeGs);
   setStatus(
@@ -178,3 +243,4 @@ elements.stationForm.addEventListener("submit", (event) => {
 
 applyUploadKey(generateUploadKey());
 loadCodeGs();
+updatePageProgress();

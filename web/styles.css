@@ -421,10 +421,130 @@ h2 {
   transform: rotate(6deg);
 }
 
+.content-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 248px;
+  grid-template-areas: "content navigation";
+  align-items: start;
+  gap: 32px;
+  padding-block: 42px 72px;
+}
+
 .workflow {
   display: grid;
+  grid-area: content;
+  min-width: 0;
   gap: 28px;
-  padding-block: 42px 72px;
+}
+
+.page-progress {
+  position: sticky;
+  z-index: 8;
+  top: 104px;
+  grid-area: navigation;
+  min-width: 0;
+}
+
+.page-progress__inner {
+  padding: 22px 0 18px;
+}
+
+.page-progress__eyebrow {
+  margin: 0 0 16px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.8rem;
+  font-weight: 720;
+  letter-spacing: 0.02em;
+}
+
+.page-progress h2 {
+  margin: 0 0 24px;
+  font-size: clamp(2rem, 3vw, 2.55rem);
+  font-weight: 520;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+}
+
+.page-progress__nav {
+  display: grid;
+  gap: 4px;
+}
+
+.page-progress__nav a {
+  display: grid;
+  min-height: 54px;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  color: var(--md-sys-color-on-surface-variant);
+  border: 1px solid transparent;
+  border-radius: 22px;
+  text-decoration: none;
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease,
+    border-radius 220ms cubic-bezier(0.2, 0, 0, 1),
+    transform 180ms ease;
+}
+
+.page-progress__nav a:hover {
+  color: var(--md-sys-color-on-surface);
+  background: var(--md-sys-color-surface-container);
+}
+
+.page-progress__nav a[aria-current="step"] {
+  color: var(--md-sys-color-on-primary-container);
+  background: var(--md-sys-color-primary-container);
+  border-color: var(--md-sys-color-outline);
+  border-radius: 24px;
+}
+
+.page-progress__nav a[aria-current="step"]:hover {
+  transform: translateX(-2px);
+}
+
+.page-progress__nav span {
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+}
+
+.page-progress__nav strong {
+  font-size: 0.94rem;
+  font-weight: 620;
+  line-height: 1.35;
+}
+
+.page-progress__footer {
+  display: grid;
+  gap: 9px;
+  margin-top: 22px;
+  padding-inline: 12px;
+}
+
+.page-progress__track {
+  height: 6px;
+  overflow: hidden;
+  background: var(--md-sys-color-surface-container-high);
+  border-radius: 999px;
+}
+
+.page-progress__track span {
+  display: block;
+  width: 25%;
+  height: 100%;
+  background: var(--md-sys-color-primary);
+  border-radius: inherit;
+  transition: width 320ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.page-progress__footer output {
+  color: var(--md-sys-color-on-surface-variant);
+  font-family: var(--font);
+  font-size: 0.75rem;
+  font-weight: 650;
 }
 
 .step-card,
@@ -800,6 +920,63 @@ a:focus-visible {
   font-size: 0.86rem;
 }
 
+@media (max-width: 1080px) {
+  .content-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "navigation"
+      "content";
+    gap: 20px;
+    padding-top: 20px;
+  }
+
+  .page-progress {
+    top: 88px;
+  }
+
+  .page-progress__inner {
+    padding: 10px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--md-sys-color-surface) 88%, transparent);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 28px;
+    box-shadow: 0 3px 12px rgba(29, 27, 32, 0.1);
+    backdrop-filter: blur(18px);
+  }
+
+  .page-progress__eyebrow,
+  .page-progress h2,
+  .page-progress__footer {
+    display: none;
+  }
+
+  .page-progress__nav {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .page-progress__nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .page-progress__nav a {
+    flex: 0 0 auto;
+    min-width: 184px;
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .page-progress__nav a[aria-current="step"] {
+    border-color: var(--md-sys-color-primary);
+  }
+
+  .step-card,
+  .finish-card {
+    scroll-margin-top: 182px;
+  }
+}
+
 @media (max-width: 920px) {
   .topbar__nav {
     display: none;
@@ -913,10 +1090,6 @@ a:focus-visible {
   .floating-chip--file {
     right: 0;
     bottom: 42px;
-  }
-
-  .workflow {
-    padding-top: 20px;
   }
 
   .step-card,

@@ -59,12 +59,38 @@
             <strong>站點已設定</strong>
             <div class="device-card__progress"><span></span></div>
           </div>
-          <div class="floating-chip floating-chip--key">64-bit key</div>
+          <div class="floating-chip floating-chip--key">256-bit key</div>
           <div class="floating-chip floating-chip--file">JSON ✓</div>
         </div>
       </section>
 
-      <div class="shell workflow">
+      <div class="shell content-layout">
+        <aside class="page-progress" aria-label="本頁進度">
+          <div class="page-progress__inner">
+            <p class="page-progress__eyebrow">本頁內容</p>
+            <h2>完成<br>ScanPoint<br>部署</h2>
+            <nav class="page-progress__nav" aria-label="部署步驟">
+              <a href="#apps-script" data-progress-section="apps-script" aria-current="step">
+                <span>01</span><strong>複製 Apps Script</strong>
+              </a>
+              <a href="#cloud-settings" data-progress-section="cloud-settings">
+                <span>02</span><strong>準備雲端設定</strong>
+              </a>
+              <a href="#station-config" data-progress-section="station-config">
+                <span>03</span><strong>下載站點設定</strong>
+              </a>
+              <a href="#deploy-finish" data-progress-section="deploy-finish">
+                <span>04</span><strong>完成現場部署</strong>
+              </a>
+            </nav>
+            <div class="page-progress__footer">
+              <div class="page-progress__track"><span id="page-progress-bar"></span></div>
+              <output id="page-progress-label">步驟 1 / 4</output>
+            </div>
+          </div>
+        </aside>
+
+        <div class="workflow">
         <section id="apps-script" class="step-card step-card--violet" aria-labelledby="step-code-title">
           <div class="step-card__heading">
             <span class="step-number"><b>01</b><i aria-hidden="true">{ }</i></span>
@@ -198,7 +224,7 @@
           </form>
         </section>
 
-        <section class="finish-card" aria-labelledby="finish-title">
+        <section id="deploy-finish" class="finish-card" aria-labelledby="finish-title">
           <div class="finish-card__title">
             <span class="finish-card__check" aria-hidden="true">✓</span>
             <div>
@@ -212,6 +238,7 @@
             <li>啟動程式，進入管理介面確認站點編號與名稱。</li>
           </ol>
         </section>
+        </div>
       </div>
     </main>
 
