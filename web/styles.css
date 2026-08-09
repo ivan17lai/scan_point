@@ -400,37 +400,125 @@ h2 {
   filter: drop-shadow(0 18px 20px rgba(33, 0, 93, 0.18));
 }
 
-.scan-card {
+.scan-wrist {
   position: absolute;
-  z-index: 3;
+  z-index: 4;
+  width: 196px;
+  height: 118px;
+  left: -36px;
+  top: -8px;
+  animation: scan-wrist-motion 2.8s ease-in-out infinite;
+}
+
+.scan-arm {
+  position: absolute;
+  width: 170px;
+  height: 60px;
+  left: 0;
+  top: 31px;
+  background: #c7795a;
+  border: 6px solid rgba(255, 255, 255, 0.82);
+  border-radius: 36px 18px 20px 36px;
+  box-shadow: 0 8px 16px rgba(74, 40, 31, 0.18);
+  transform: rotate(-8deg);
+}
+
+.nfc-band {
+  position: absolute;
+  z-index: 5;
   display: grid;
-  width: 122px;
+  width: 44px;
   height: 76px;
-  left: 4px;
-  top: 0;
-  align-content: space-between;
-  padding: 13px;
-  color: #493b00;
-  background: var(--step-yellow);
-  border: 6px solid rgba(255, 255, 255, 0.8);
+  left: 96px;
+  top: -13px;
+  place-items: center;
+  align-content: center;
+  gap: 5px;
+  color: #ffffff;
+  background: var(--md-sys-color-primary);
+  border: 5px solid rgba(255, 255, 255, 0.9);
   border-radius: 18px;
-  font-size: 0.68rem;
-  font-weight: 850;
-  letter-spacing: 0.09em;
+  box-shadow: 0 7px 14px rgba(33, 0, 93, 0.22);
+  transform: rotate(5deg);
+}
+
+.nfc-band i {
+  width: 17px;
+  height: 17px;
+  background: #5ee0a0;
+  border: 5px solid rgba(94, 224, 160, 0.22);
+  border-radius: 50%;
+  background-clip: padding-box;
+}
+
+.nfc-band b {
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+}
+
+.scan-hand {
+  position: absolute;
+  z-index: 2;
+  width: 68px;
+  height: 58px;
+  right: -52px;
+  top: -5px;
+  background: #c7795a;
+  border: 5px solid rgba(255, 255, 255, 0.82);
+  border-left: 0;
+  border-radius: 16px 42px 38px 14px;
+}
+
+.scan-hand i {
+  position: absolute;
+  width: 38px;
+  height: 13px;
+  right: -20px;
+  background: #c7795a;
+  border: 3px solid rgba(255, 255, 255, 0.82);
+  border-left: 0;
+  border-radius: 0 12px 12px 0;
+  transform-origin: left center;
+}
+
+.scan-hand i:nth-child(1) {
+  top: 1px;
   transform: rotate(-10deg);
-  animation: scan-card-motion 2.8s ease-in-out infinite;
 }
 
-.scan-card i {
+.scan-hand i:nth-child(2) {
+  width: 44px;
+  top: 16px;
+  transform: rotate(-3deg);
+}
+
+.scan-hand i:nth-child(3) {
+  width: 40px;
+  top: 31px;
+  transform: rotate(4deg);
+}
+
+.scan-hand i:nth-child(4) {
   width: 34px;
-  height: 20px;
-  background:
-    linear-gradient(90deg, transparent 45%, rgba(73, 59, 0, 0.45) 46% 54%, transparent 55%),
-    linear-gradient(transparent 45%, rgba(73, 59, 0, 0.45) 46% 54%, transparent 55%);
-  border: 2px solid rgba(73, 59, 0, 0.45);
-  border-radius: 5px;
+  right: 6px;
+  bottom: -16px;
+  border-left: 3px solid rgba(255, 255, 255, 0.82);
+  border-radius: 10px;
+  transform: rotate(38deg);
 }
 
+@keyframes scan-wrist-motion {
+  0%,
+  18%,
+  100% {
+    transform: translate(-12px, -8px) rotate(-4deg);
+  }
+
+  48%,
+  68% {
+    transform: translate(31px, 28px) rotate(1deg);
+  }
+}
 .scan-reader {
   position: absolute;
   z-index: 2;
@@ -497,33 +585,6 @@ h2 {
   width: 64px;
   height: 64px;
   animation-delay: 0.36s;
-}
-
-.illustration-label {
-  position: absolute;
-  z-index: 6;
-  left: 18px;
-  bottom: 4px;
-  padding: 8px 12px;
-  color: var(--md-sys-color-on-surface-variant);
-  background: rgba(255, 255, 255, 0.86);
-  border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 720;
-  backdrop-filter: blur(8px);
-}
-
-@keyframes scan-card-motion {
-  0%,
-  18%,
-  100% {
-    transform: translate(-8px, -6px) rotate(-10deg);
-  }
-
-  48%,
-  68% {
-    transform: translate(24px, 26px) rotate(-5deg);
-  }
 }
 
 @keyframes scan-wave {
@@ -1196,11 +1257,6 @@ a:focus-visible {
     transform-origin: right bottom;
   }
 
-  .illustration-label {
-    left: 8px;
-    bottom: 8px;
-    font-size: 0.62rem;
-  }
   .step-card,
   .finish-card {
     padding: 26px 20px;
@@ -1715,7 +1771,7 @@ a:focus-visible {
     transition-duration: 0.01ms !important;
   }
 
-  .scan-card,
+  .scan-wrist,
   .scan-waves i {
     animation: none !important;
   }
