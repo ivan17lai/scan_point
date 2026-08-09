@@ -3,12 +3,18 @@
 const engine = window.ScanPointScoreEngine;
 
 const elements = {
+  app: document.querySelector("#score-app"),
+  panels: document.querySelectorAll("[data-score-panel]"),
+  stepButtons: document.querySelectorAll("[data-go-step]"),
+  stepProgress: document.querySelector("#score-step-progress"),
+  stepLabel: document.querySelector("#score-step-label"),
   cloudUrl: document.querySelector("#score-cloud-url"),
   readKey: document.querySelector("#score-read-key"),
   loadCloud: document.querySelector("#load-cloud"),
   fileInput: document.querySelector("#score-files"),
   dropzone: document.querySelector("#score-dropzone"),
   dataStatus: document.querySelector("#score-data-status"),
+  dataUnlockHint: document.querySelector("#data-unlock-hint"),
   recordCount: document.querySelector("#loaded-record-count"),
   stationCount: document.querySelector("#loaded-station-count"),
   sourceLabel: document.querySelector("#loaded-source"),
@@ -26,15 +32,15 @@ const elements = {
   resultStatus: document.querySelector("#score-result-status"),
   search: document.querySelector("#score-search"),
   exportButton: document.querySelector("#export-score"),
-  progressLinks: document.querySelectorAll("[data-score-section]"),
-  progressBar: document.querySelector("#score-progress-bar"),
-  progressLabel: document.querySelector("#score-progress-label"),
+  backToRules: document.querySelector("#back-to-rules"),
 };
 
 let sourceRecords = [];
 let scoreResult = null;
 let sourceDescription = "尚未載入";
-let progressFrame = 0;
+let activeStep = 1;
+let dataReady = false;
+let resultReady = false;
 
 function setStatus(element, message, tone = "") {
   element.textContent = message;
@@ -42,20 +48,76 @@ function setStatus(element, message, tone = "") {
   else delete element.dataset.tone;
 }
 
+function stepStatus(step) {
+  if (step === activeStep) return "進行中";
+  if (step === 1) return dataReady ? "已完成" : "尚未完成";
+  if (step === 2) {
+    if (!dataReady) return "完成第一步後解鎖";
+    return resultReady ? "已完成" : "已解鎖";
+  }
+  return resultReady ? "可查看" : "計算後開啟";
+}
+
+function updateStepAccess() {
+  elements.app.dataset.dataReady = String(dataReady);
+  elements.stepButtons.forEach((button) => {
+    const step = Number(button.dataset.goStep);
+    button.disabled =
+      (step === 2 && !dataReady) || (step === 3 && !resultReady);
+    button.querySelector("small").textContent = stepStatus(step);
+  });
+}
+
+function goToStep(step) {
+  if (step === 2 && !dataReady) return;
+  if (step === 3 && !resultReady) return;
+
+  activeStep = step;
+  elements.app.dataset.activeStep = String(step);
+  elements.app.classList.toggle("is-results", step === 3);
+
+  elements.panels.forEach((panel) => {
+    const isActive = Number(panel.dataset.scorePanel) === step;
+    panel.hidden = !isActive;
+    if (isActive) panel.scrollTop = 0;
+  });
+  elements.stepButtons.forEach((button) => {
+    if (Number(button.dataset.goStep) === step) {
+      button.setAttribute("aria-current", "step");
+    } else {
+      button.removeAttribute("aria-current");
+    }
+  });
+
+  const progress = `${(step / 3) * 100}%`;
+  elements.stepProgress.style.setProperty("--score-progress", progress);
+  elements.stepLabel.value = `步驟 ${step} / 3`;
+  updateStepAccess();
+}
+
 function describeLoaded(records, source) {
+  const validRecords = engine.normalizeRecords(records);
   const stations = engine.inferStations(records);
+  if (!validRecords.length || !stations.length) {
+    throw new Error("資料中沒有可辨識的有效掃描紀錄");
+  }
+
   sourceRecords = records;
   sourceDescription = source;
-  elements.recordCount.textContent = String(records.length);
+  dataReady = true;
+  resultReady = false;
+  scoreResult = null;
+  elements.recordCount.textContent = String(validRecords.length);
   elements.stationCount.textContent = String(stations.length);
   elements.sourceLabel.textContent = source;
   elements.stationOrder.value = stations.map((station) => station.id).join(", ");
   renderStationChips(stations);
-  scoreResult = null;
   resetResults();
+  updateStepAccess();
+  elements.dataUnlockHint.textContent = "第二步已解鎖，請從右側切換";
   setStatus(
     elements.dataStatus,
-    `已載入 ${records.length} 筆資料，辨識到 ${stations.length} 個站點。`,
+    `已載入 ${validRecords.length} 筆有效資料，辨識到 ${stations.length} 個站點。`,
     "success",
   );
 }
@@ -93,7 +155,16 @@ function resetResults() {
   elements.resultTable.hidden = true;
   elements.emptyState.hidden = false;
   elements.exportButton.disabled = true;
-  elements.resultStatus.textContent = "載入資料並設定站點順序後即可計分。";
+  elements.resultStatus.textContent = "完成前兩個步驟後顯示成績。";
+}
+
+function invalidateResults() {
+  if (!resultReady && !scoreResult) return;
+  resultReady = false;
+  scoreResult = null;
+  resetResults();
+  updateStepAccess();
+  setStatus(elements.ruleStatus, "站點順序已變更，請重新計算成績。");
 }
 
 async function loadFiles(files) {
@@ -155,6 +226,7 @@ function loadCloudJsonp(endpoint) {
     document.head.append(script);
   });
 }
+
 async function loadCloud() {
   const endpointText = elements.cloudUrl.value.trim();
   const readKey = elements.readKey.value.trim();
@@ -198,7 +270,7 @@ async function loadCloud() {
   } catch (error) {
     setStatus(
       elements.dataStatus,
-      `雲端讀取失敗：${error.message}。也可以改用下方檔案匯入。`,
+      `雲端讀取失敗：${error.message}。也可以改用本機檔案。`,
       "error",
     );
   } finally {
@@ -207,8 +279,8 @@ async function loadCloud() {
 }
 
 function calculateScore() {
-  if (!sourceRecords.length) {
-    setStatus(elements.ruleStatus, "請先載入雲端資料或本機檔案。", "error");
+  if (!dataReady || !sourceRecords.length) {
+    setStatus(elements.ruleStatus, "請先完成第一步並載入有效資料。", "error");
     return;
   }
 
@@ -227,18 +299,15 @@ function calculateScore() {
   elements.exportButton.disabled = scoreResult.participants.length === 0;
   elements.emptyState.hidden = true;
   elements.resultTable.hidden = false;
+  resultReady = true;
   setStatus(
     elements.ruleStatus,
     `已依序使用 ${scoreResult.stationOrder.join(" → ")} 計分。`,
     "success",
   );
   renderResults();
-  document.querySelector("#score-results").scrollIntoView({
-    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      ? "auto"
-      : "smooth",
-    block: "start",
-  });
+  updateStepAccess();
+  goToStep(3);
 }
 
 function formatTime(timestamp) {
@@ -268,7 +337,9 @@ function renderResults() {
     const rankCell = document.createElement("td");
     rankCell.dataset.label = "名次";
     const rank = document.createElement("span");
-    rank.className = participant.rank ? "rank-badge" : "rank-badge rank-badge--empty";
+    rank.className = participant.rank
+      ? "rank-badge"
+      : "rank-badge rank-badge--empty";
     rank.textContent = participant.rank ? String(participant.rank) : "—";
     rankCell.append(rank);
 
@@ -307,7 +378,8 @@ function renderResults() {
     routeCell.dataset.label = "通過站點";
     routeCell.className = "route-cell";
     routeCell.textContent =
-      participant.matched.map((record) => record.stationId).join(" → ") || "尚未通過首站";
+      participant.matched.map((record) => record.stationId).join(" → ") ||
+      "尚未通過首站";
 
     row.append(
       rankCell,
@@ -333,7 +405,16 @@ function csvCell(value) {
 function exportResults() {
   if (!scoreResult) return;
   const rows = [
-    ["rank", "card_id", "status", "progress", "elapsed", "start_time", "finish_time", "stations"],
+    [
+      "rank",
+      "card_id",
+      "status",
+      "progress",
+      "elapsed",
+      "start_time",
+      "finish_time",
+      "stations",
+    ],
     ...scoreResult.participants.map((participant) => [
       participant.rank ?? "",
       participant.cardId,
@@ -349,7 +430,8 @@ function exportResults() {
       participant.matched.map((record) => record.stationId).join(" > "),
     ]),
   ];
-  const csv = "\uFEFF" + rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
+  const csv =
+    "\uFEFF" + rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
   const blob = new Blob([csv], {type: "text/csv;charset=utf-8"});
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
@@ -360,42 +442,20 @@ function exportResults() {
   link.remove();
 }
 
-function updateProgress() {
-  const marker = window.scrollY + window.innerHeight * 0.4;
-  const sections = Array.from(elements.progressLinks, (link) =>
-    document.querySelector("#" + link.dataset.scoreSection),
-  );
-  let active = 0;
-  sections.forEach((section, index) => {
-    if (section.offsetTop <= marker) active = index;
+elements.stepButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    goToStep(Number(button.dataset.goStep));
   });
-  if (
-    window.scrollY + window.innerHeight >=
-    document.documentElement.scrollHeight - 4
-  ) {
-    active = sections.length - 1;
-  }
-  elements.progressLinks.forEach((link, index) => {
-    if (index === active) link.setAttribute("aria-current", "step");
-    else link.removeAttribute("aria-current");
-  });
-  elements.progressBar.style.width = `${((active + 1) / sections.length) * 100}%`;
-  elements.progressLabel.value = `步驟 ${active + 1} / ${sections.length}`;
-}
-
-function scheduleProgress() {
-  if (progressFrame) return;
-  progressFrame = requestAnimationFrame(() => {
-    progressFrame = 0;
-    updateProgress();
-  });
-}
-
+});
 elements.loadCloud.addEventListener("click", loadCloud);
-elements.fileInput.addEventListener("change", () => loadFiles(elements.fileInput.files));
+elements.fileInput.addEventListener("change", () =>
+  loadFiles(elements.fileInput.files),
+);
 elements.calculate.addEventListener("click", calculateScore);
+elements.stationOrder.addEventListener("input", invalidateResults);
 elements.search.addEventListener("input", renderResults);
 elements.exportButton.addEventListener("click", exportResults);
+elements.backToRules.addEventListener("click", () => goToStep(2));
 elements.dropzone.addEventListener("dragover", (event) => {
   event.preventDefault();
   elements.dropzone.classList.add("is-dragging");
@@ -408,9 +468,7 @@ elements.dropzone.addEventListener("drop", (event) => {
   elements.dropzone.classList.remove("is-dragging");
   loadFiles(event.dataTransfer.files);
 });
-window.addEventListener("scroll", scheduleProgress, {passive: true});
-window.addEventListener("resize", scheduleProgress);
 
 renderStationChips([]);
 resetResults();
-updateProgress();
+goToStep(1);
