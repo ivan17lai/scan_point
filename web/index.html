@@ -51,21 +51,25 @@
           </div>
         </div>
 
-        <div class="hero__visual" aria-hidden="true">
-          <div class="shape shape--sun"></div>
-          <div class="shape shape--flower"></div>
-          <div class="device-card">
-            <div class="device-card__topline">
-              <span class="device-card__badge">CP 01</span>
-              <span class="device-card__ready"><i></i> OFFLINE</span>
-            </div>
-            <div class="device-card__symbol">⌁</div>
-            <p>水源地 · CP 01</p>
-            <strong>等待刷卡</strong>
-            <div class="device-card__progress"><span></span></div>
+        <div class="hero__visual hero__visual--field" role="img"
+          aria-label="概念示意：地圖上的五個站點，以及卡片靠近讀卡器的掃描動作">
+          <div class="field-map" aria-hidden="true">
+            <i class="route-line route-line--1"></i>
+            <i class="route-line route-line--2"></i>
+            <i class="route-line route-line--3"></i>
+            <i class="route-line route-line--4"></i>
+            <span class="map-station map-station--1"><i></i><b>CP01</b></span>
+            <span class="map-station map-station--2"><i></i><b>CP02</b></span>
+            <span class="map-station map-station--3"><i></i><b>CP03</b></span>
+            <span class="map-station map-station--4"><i></i><b>CP04</b></span>
+            <span class="map-station map-station--5"><i></i><b>CP05</b></span>
           </div>
-          <div class="floating-chip floating-chip--key">256-bit key</div>
-          <div class="floating-chip floating-chip--file">JSON ✓</div>
+          <div class="scan-gesture" aria-hidden="true">
+            <div class="scan-card"><span>RFID</span><i></i></div>
+            <div class="scan-waves"><i></i><i></i><i></i></div>
+            <div class="scan-reader"><span></span><b>SCAN</b></div>
+          </div>
+          <span class="illustration-label">概念示意 · 非軟體畫面</span>
         </div>
       </section>
 
