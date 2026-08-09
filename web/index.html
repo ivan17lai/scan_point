@@ -3,9 +3,9 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="ScanPoint Google 試算表上傳與站點設定工具">
+    <meta name="description" content="ScanPoint 離線現場刷卡、可靠備份與活動後集中上傳系統">
     <meta name="theme-color" content="#fef7ff">
-    <title>ScanPoint 部署工具</title>
+    <title>ScanPoint｜離線現場刷卡系統</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
@@ -16,12 +16,13 @@
           <span>ScanPoint</span>
         </a>
         <nav class="topbar__nav" aria-label="頁面導覽">
-          <a href="#apps-script">Apps Script</a>
-          <a href="#cloud-settings">雲端設定</a>
-          <a href="#station-config">站點設定</a>
+          <a href="#top">首頁</a>
+          <a href="#features">系統特色</a>
+          <a href="#architecture">專案架構</a>
+          <a href="#deployment">部署工具</a>
         </nav>
-        <a class="topbar__action" href="#station-config">
-          建立設定檔 <span aria-hidden="true">→</span>
+        <a class="topbar__action" href="#deployment">
+          開始配置 <span aria-hidden="true">→</span>
         </a>
       </div>
     </header>
@@ -29,20 +30,24 @@
     <main id="top">
       <section class="shell hero">
         <div class="hero__copy">
-          <p class="eyebrow">SCANPOINT DEPLOYMENT KIT</p>
-          <h1>讓每一個站點，<br>準備好再出發。</h1>
+          <p class="eyebrow">OFFLINE EVENT CHECKPOINT SYSTEM</p>
+          <h1>沒有網路，<br>紀錄也不能停。</h1>
           <p class="hero__lead">
-            一個頁面完成 Google Apps Script、雲端金鑰與
-            <code>station.json</code>，把現場部署變成清楚的三個步驟。
+            ScanPoint 是為現場活動打造的離線刷卡系統。掃描站獨立記錄、
+            多份即時備份，活動結束後再一次匯出或上傳。
           </p>
           <div class="hero__actions">
-            <a class="button button--hero" href="#apps-script">
-              開始設定 <span aria-hidden="true">→</span>
+            <a class="button button--hero" href="#features">
+              認識 ScanPoint <span aria-hidden="true">→</span>
             </a>
-            <div class="privacy-note">
-              <span class="privacy-note__dot" aria-hidden="true"></span>
-              所有資料只在此瀏覽器處理
-            </div>
+            <a class="button button--hero-quiet" href="#deployment">
+              直接建立站點
+            </a>
+          </div>
+          <div class="hero__tags" aria-label="系統特色">
+            <span>Offline-first</span>
+            <span>Windows kiosk</span>
+            <span>Google Sheets</span>
           </div>
         </div>
 
@@ -52,11 +57,11 @@
           <div class="device-card">
             <div class="device-card__topline">
               <span class="device-card__badge">CP 01</span>
-              <span class="device-card__ready"><i></i> READY</span>
+              <span class="device-card__ready"><i></i> OFFLINE</span>
             </div>
             <div class="device-card__symbol">⌁</div>
-            <p>水源地</p>
-            <strong>站點已設定</strong>
+            <p>水源地 · CP 01</p>
+            <strong>等待刷卡</strong>
             <div class="device-card__progress"><span></span></div>
           </div>
           <div class="floating-chip floating-chip--key">256-bit key</div>
@@ -64,6 +69,120 @@
         </div>
       </section>
 
+      <section class="shell system-summary" aria-label="ScanPoint 核心能力">
+        <article>
+          <strong>離線</strong>
+          <span>全程記錄</span>
+          <p>網路中斷不影響刷卡，資料先安全保存在現場電腦。</p>
+        </article>
+        <article>
+          <strong>2＋1</strong>
+          <span>即時副本</span>
+          <p>主資料、程式旁鏡像，加上可選的 USB 額外備份。</p>
+        </article>
+        <article>
+          <strong>一次</strong>
+          <span>活動後上傳</span>
+          <p>統計完成再把完整紀錄送往 Google 試算表。</p>
+        </article>
+      </section>
+
+      <section id="features" class="shell intro-section">
+        <div class="intro-heading">
+          <p class="eyebrow">BUILT FOR THE FIELD</p>
+          <h2>現場越忙，系統越要簡單可靠。</h2>
+          <p>
+            從讀卡到備份都以無人值守的掃描站為核心設計，
+            操作員只需要確認畫面與提示音。
+          </p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card feature-card--purple">
+            <span class="feature-card__index">01</span>
+            <div class="feature-card__icon" aria-hidden="true">⌁</div>
+            <h3>快速掃描與防重複</h3>
+            <p>支援鍵盤模擬式讀卡機，即時辨識有效、重複與不完整封包，中文輸入法也不干擾刷卡。</p>
+            <ul>
+              <li>Enter 與讀卡機結尾碼</li>
+              <li>畫面、聲音雙重回饋</li>
+            </ul>
+          </article>
+          <article class="feature-card feature-card--blue">
+            <span class="feature-card__index">02</span>
+            <div class="feature-card__icon" aria-hidden="true">≋</div>
+            <h3>資料不只留一份</h3>
+            <p>每次刷卡同步寫入固定主資料與 EXE 同層鏡像，還能額外備份到隨身碟。</p>
+            <ul>
+              <li>JSONL 與 CSV 格式</li>
+              <li>拔除隨身碟不影響主紀錄</li>
+            </ul>
+          </article>
+          <article class="feature-card feature-card--yellow">
+            <span class="feature-card__index">03</span>
+            <div class="feature-card__icon" aria-hidden="true">↥</div>
+            <h3>活動後集中處理</h3>
+            <p>管理介面可以查看掃描與操作歷史、匯出完整快照，再手動一次上傳到雲端。</p>
+            <ul>
+              <li>離線優先，不依賴即時網路</li>
+              <li>穩定 ID 避免重複上傳</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="architecture" class="shell architecture-section">
+        <div class="architecture-copy">
+          <p class="eyebrow">MODULAR BY DESIGN</p>
+          <h2>三個模組，<br>各自做好一件事。</h2>
+          <p>
+            現場記錄、部署設定與成績計算分開運作，
+            任何一部分發生問題都不會拖垮正在刷卡的站點。
+          </p>
+        </div>
+        <div class="module-grid">
+          <article class="module-card module-card--station">
+            <div class="module-card__top">
+              <span>01</span><small>AVAILABLE</small>
+            </div>
+            <h3>ScanPoint Station</h3>
+            <p>Windows 全螢幕掃描站，負責讀卡、提示、去重與本機多重保存。</p>
+            <code>scanpoint/</code>
+          </article>
+          <article class="module-card module-card--web">
+            <div class="module-card__top">
+              <span>02</span><small>AVAILABLE</small>
+            </div>
+            <h3>Deployment Web</h3>
+            <p>這個靜態網站，負責 Apps Script、金鑰與站點設定檔。</p>
+            <code>web/</code>
+          </article>
+          <article class="module-card module-card--score">
+            <div class="module-card__top">
+              <span>03</span><small>NEXT</small>
+            </div>
+            <h3>Score Center</h3>
+            <p>匯入各站資料、計算成績並輸出活動排名的集中工作站。</p>
+            <code>score_center/</code>
+          </article>
+        </div>
+        <div class="system-flow" aria-label="資料流程">
+          <span>讀卡機</span><i aria-hidden="true">→</i>
+          <span>ScanPoint</span><i aria-hidden="true">→</i>
+          <span>本機紀錄</span><i aria-hidden="true">→</i>
+          <span>Score Center／Google Sheets</span>
+        </div>
+      </section>
+
+      <section id="deployment" class="shell deployment-intro">
+        <div>
+          <p class="eyebrow">DEPLOYMENT TOOL</p>
+          <h2>現在，建立一台掃描站。</h2>
+        </div>
+        <p>
+          依序完成 Apps Script、雲端金鑰與站點設定。
+          所有敏感資料只在你的瀏覽器中處理，不會送到這個網站。
+        </p>
+      </section>
       <div class="shell content-layout">
         <aside class="page-progress" aria-label="本頁進度">
           <div class="page-progress__inner">

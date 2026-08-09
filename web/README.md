@@ -1,8 +1,8 @@
-# ScanPoint deployment web
+# ScanPoint project and deployment web
 
-Zero-dependency static deployment helper for GitHub Pages.
+Zero-dependency project overview and deployment helper for GitHub Pages.
 
-It provides:
+It introduces the offline station workflow and three-module architecture, then provides:
 
 - one-click copy and download of `google_apps_script/Code.gs`;
 - local, cryptographically secure `UPLOAD_KEY` generation;
