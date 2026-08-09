@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="ScanPoint 純前端成績計算中心，可讀取 Google 試算表或本機掃描紀錄">
+    <meta name="theme-color" content="#fef7ff">
+    <title>成績計算｜ScanPoint Score Center</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="score.css">
+  </head>
+  <body class="score-page">
+    <header class="site-header">
+      <div class="shell topbar">
+        <a class="brand" href="index.html" aria-label="返回 ScanPoint 首頁">
+          <span class="brand__mark" aria-hidden="true">S</span>
+          <span>ScanPoint</span>
+        </a>
+        <nav class="topbar__nav" aria-label="網站導覽">
+          <a href="index.html">首頁</a>
+          <a href="index.html#architecture">專案架構</a>
+          <a href="deploy.html">部署教學</a>
+          <a href="score.html" aria-current="page">成績計算</a>
+        </nav>
+        <a class="topbar__action" href="#score-data">
+          載入資料 <span aria-hidden="true">↓</span>
+        </a>
+      </div>
+    </header>
+
+    <main id="top" class="score-main">
+      <section class="shell score-hero">
+        <div class="score-hero__copy">
+          <a class="back-link" href="index.html"><span aria-hidden="true">←</span> 回到專案首頁</a>
+          <p class="eyebrow">SCANPOINT SCORE CENTER</p>
+          <h1>資料到齊，<br>排名立即完成。</h1>
+          <p>
+            從 Google 試算表或本機匯出檔載入掃描紀錄，設定站點順序後，
+            在瀏覽器內完成計分。資料不會傳送到其他伺服器。
+          </p>
+        </div>
+        <div class="score-hero__board" aria-label="計分流程示意">
+          <div class="score-board__header">
+            <span>LIVE RESULT</span>
+            <i aria-hidden="true"></i>
+          </div>
+          <ol>
+            <li><b>1</b><span><strong>A018</strong><small>18:42.36</small></span></li>
+            <li><b>2</b><span><strong>B207</strong><small>19:05.12</small></span></li>
+            <li><b>3</b><span><strong>C114</strong><small>19:48.70</small></span></li>
+          </ol>
+          <div class="score-board__route">
+            <span>CP01</span><i>→</i><span>CP02</span><i>→</i><span>CP03</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="shell content-layout content-layout--score">
+        <aside class="page-progress score-progress" aria-label="計分步驟">
+          <div class="page-progress__inner">
+            <p class="page-progress__eyebrow">計分流程</p>
+            <h2>三步<br>完成<br>排名</h2>
+            <nav class="page-progress__nav" aria-label="計分步驟">
+              <a href="#score-data" data-score-section="score-data" aria-current="step">
+                <span>01</span><strong>載入掃描資料</strong>
+              </a>
+              <a href="#score-rules" data-score-section="score-rules">
+                <span>02</span><strong>設定站點順序</strong>
+              </a>
+              <a href="#score-results" data-score-section="score-results">
+                <span>03</span><strong>查看與匯出排名</strong>
+              </a>
+            </nav>
+            <div class="page-progress__footer">
+              <div class="page-progress__track"><span id="score-progress-bar"></span></div>
+              <output id="score-progress-label">步驟 1 / 3</output>
+            </div>
+          </div>
+        </aside>
+
+        <div class="workflow score-workflow">
+          <section id="score-data" class="step-card score-card score-card--data"
+            aria-labelledby="score-data-title">
+            <div class="step-card__heading">
+              <span class="step-number"><b>01</b><i aria-hidden="true">↧</i></span>
+              <div>
+                <p class="section-kicker">Data source</p>
+                <h2 id="score-data-title">載入掃描資料</h2>
+              </div>
+            </div>
+            <p class="section-copy">
+              可直接連到部署完成的 Apps Script，也可以一次選取多個站點匯出的
+              CSV、JSON 或 JSONL。兩種方式都只在目前瀏覽器工作階段中處理。
+            </p>
+
+            <div class="score-source-grid">
+              <article class="source-panel source-panel--cloud">
+                <div class="source-panel__heading">
+                  <span class="source-icon" aria-hidden="true">☁</span>
+                  <div><small>ONLINE</small><h3>Google 試算表</h3></div>
+                </div>
+                <label class="field field--wide">
+                  <span>Apps Script 正式網址</span>
+                  <input id="score-cloud-url" type="url"
+                    placeholder="https://script.google.com/macros/s/.../exec"
+                    autocomplete="url">
+                </label>
+                <label class="field field--wide">
+                  <span>READ_KEY</span>
+                  <input id="score-read-key" type="password"
+                    placeholder="部署頁產生的唯讀金鑰" autocomplete="off">
+                  <small>只保留在此頁記憶體，不會儲存，也不是 UPLOAD_KEY。</small>
+                </label>
+                <button class="button button--primary" id="load-cloud" type="button">
+                  讀取 Google 試算表
+                </button>
+              </article>
+
+              <article class="source-panel source-panel--local">
+                <div class="source-panel__heading">
+                  <span class="source-icon" aria-hidden="true">⇧</span>
+                  <div><small>OFFLINE</small><h3>本機匯出檔</h3></div>
+                </div>
+                <label class="score-dropzone" id="score-dropzone" for="score-files">
+                  <input id="score-files" type="file" accept=".csv,.json,.jsonl"
+                    multiple>
+                  <span class="score-dropzone__mark" aria-hidden="true">＋</span>
+                  <strong>選擇或拖放檔案</strong>
+                  <small>可同時選取不同站點的檔案</small>
+                </label>
+              </article>
+            </div>
+
+            <div class="loaded-summary" aria-live="polite">
+              <div><span>紀錄</span><strong id="loaded-record-count">0</strong></div>
+              <div><span>站點</span><strong id="loaded-station-count">0</strong></div>
+              <div><span>來源</span><strong id="loaded-source">尚未載入</strong></div>
+            </div>
+            <p class="status score-status" id="score-data-status" role="status">
+              選擇一種方式載入資料。
+            </p>
+          </section>
+
+          <section id="score-rules" class="step-card score-card score-card--rules"
+            aria-labelledby="score-rules-title">
+            <div class="step-card__heading">
+              <span class="step-number"><b>02</b><i aria-hidden="true">→</i></span>
+              <div>
+                <p class="section-kicker">Scoring rule</p>
+                <h2 id="score-rules-title">設定站點通過順序</h2>
+              </div>
+            </div>
+            <p class="section-copy">
+              系統會先依站點編號自動排列。可修改成活動實際路線；
+              每個卡號必須依序通過，從第一站到最後一站的時間就是成績。
+            </p>
+
+            <label class="field field--wide score-order-field">
+              <span>站點順序</span>
+              <input id="station-order" type="text"
+                placeholder="CP01, CP02, CP03, CP04" autocomplete="off">
+              <small>使用逗號或換行分隔；順序錯誤的刷卡不會算進已完成站點。</small>
+            </label>
+            <div class="station-chips" id="station-chips" aria-label="辨識到的站點"></div>
+
+            <div class="score-rule-note">
+              <span aria-hidden="true">i</span>
+              <p>
+                重複刷卡紀錄會自動排除；完賽者依耗時排序，未完賽者依照已完成站數排序。
+              </p>
+            </div>
+            <div class="score-rule-actions">
+              <button class="button button--accent" id="calculate-score" type="button">
+                計算成績 <span aria-hidden="true">→</span>
+              </button>
+              <p class="status" id="score-rule-status" role="status">
+                載入資料後確認站點順序。
+              </p>
+            </div>
+          </section>
+
+          <section id="score-results" class="score-results" aria-labelledby="score-results-title">
+            <div class="score-results__heading">
+              <div>
+                <p class="section-kicker">Results</p>
+                <h2 id="score-results-title">活動排名</h2>
+              </div>
+              <button class="button button--quiet" id="export-score" type="button" disabled>
+                匯出成績 CSV
+              </button>
+            </div>
+
+            <div class="score-metrics">
+              <article><span>參賽者</span><strong id="metric-participants">—</strong></article>
+              <article><span>完賽</span><strong id="metric-completed">—</strong></article>
+              <article><span>計分站點</span><strong id="metric-stations">—</strong></article>
+              <article><span>有效掃描</span><strong id="metric-scans">—</strong></article>
+            </div>
+
+            <div class="result-toolbar">
+              <label>
+                <span class="visually-hidden">搜尋卡號</span>
+                <input id="score-search" type="search" placeholder="搜尋卡號">
+              </label>
+              <p id="score-result-status" role="status">
+                載入資料並設定站點順序後即可計分。
+              </p>
+            </div>
+
+            <div class="score-empty" id="score-empty-state">
+              <span aria-hidden="true">≋</span>
+              <h3>還沒有成績</h3>
+              <p>完成前兩個步驟後，排名會顯示在這裡。</p>
+            </div>
+
+            <div class="result-table-wrap">
+              <table class="result-table" id="score-result-table" hidden>
+                <thead>
+                  <tr>
+                    <th>名次</th>
+                    <th>卡號</th>
+                    <th>狀態</th>
+                    <th>成績</th>
+                    <th>起點時間</th>
+                    <th>終點時間</th>
+                    <th>通過站點</th>
+                  </tr>
+                </thead>
+                <tbody id="score-result-body"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer class="shell footer">
+      <div class="brand brand--footer">
+        <span class="brand__mark" aria-hidden="true">S</span>
+        <span>ScanPoint</span>
+      </div>
+      <p>純前端成績計算 · 資料只在瀏覽器內處理</p>
+    </footer>
+
+    <script src="score-engine.js"></script>
+    <script src="score.js"></script>
+  </body>
+</html>

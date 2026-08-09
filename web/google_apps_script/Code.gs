@@ -19,12 +19,89 @@ const SUMMARY_HEADERS = [
   'total_scans', 'operations', 'last_uploaded_at',
 ];
 
-function doGet() {
-  return jsonResponse({
-    ok: true,
-    service: 'scan_point Google Sheets uploader',
-    schema_version: 1,
+function doGet(e) {
+  const action = cleanText(e && e.parameter && e.parameter.action);
+  try {
+    if (action === 'scores') return readScores(e);
+    return jsonResponse({
+      ok: true,
+      service: 'scan_point Google Sheets uploader',
+      schema_version: 1,
+    });
+  } catch (error) {
+    const value = {
+      ok: false,
+      error: String(error && error.message ? error.message : error),
+    };
+    return action === 'scores'
+      ? scoreResponse(e, value)
+      : jsonResponse(value);
+  }
+}
+
+function readScores(e) {
+  const properties = PropertiesService.getScriptProperties();
+  const spreadsheetId = properties.getProperty('SPREADSHEET_ID');
+  const expectedReadKey = properties.getProperty('READ_KEY');
+  const actualReadKey = e && e.parameter && e.parameter.read_key;
+
+  if (!spreadsheetId || !expectedReadKey) {
+    return scoreResponse(e, {
+      ok: false,
+      error: 'Score reading properties are not configured',
+    });
+  }
+  if (!safeEqual(actualReadKey, expectedReadKey)) {
+    return scoreResponse(e, {ok: false, error: 'Unauthorized'});
+  }
+
+  const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+  const sheet = spreadsheet.getSheetByName('scans');
+  if (!sheet || sheet.getLastRow() < 2) {
+    return scoreResponse(e, {
+      ok: true,
+      schema_version: 1,
+      generated_at: new Date().toISOString(),
+      scans: [],
+    });
+  }
+
+  const rowCount = sheet.getLastRow() - 1;
+  if (rowCount > 50000) {
+    return scoreResponse(e, {
+      ok: false,
+      error: 'Score data exceeds the 50000 row limit',
+    });
+  }
+
+  const values = sheet
+    .getRange(2, 1, rowCount, SCAN_HEADERS.length)
+    .getDisplayValues();
+  const scans = values.map((row) => {
+    const record = {};
+    SCAN_HEADERS.forEach((header, index) => {
+      record[header] = row[index];
+    });
+    return record;
   });
+
+  return scoreResponse(e, {
+    ok: true,
+    schema_version: 1,
+    generated_at: new Date().toISOString(),
+    scans,
+  });
+}
+
+function scoreResponse(e, value) {
+  const callback = cleanText(e && e.parameter && e.parameter.callback);
+  if (!callback) return jsonResponse(value);
+  if (!/^[a-zA-Z_$][0-9a-zA-Z_$]{0,80}$/.test(callback)) {
+    return jsonResponse({ok: false, error: 'Invalid callback'});
+  }
+  return ContentService
+    .createTextOutput(callback + '(' + JSON.stringify(value) + ');')
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
 function doPost(e) {

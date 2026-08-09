@@ -10,6 +10,9 @@ const elements = {
   uploadKey: document.querySelector("#upload-key"),
   copyUploadKey: document.querySelector("#copy-upload-key"),
   generateKey: document.querySelector("#generate-key"),
+  readKey: document.querySelector("#read-key"),
+  copyReadKey: document.querySelector("#copy-read-key"),
+  generateReadKey: document.querySelector("#generate-read-key"),
   stationUploadKey: document.querySelector("#station-upload-key"),
   stationForm: document.querySelector("#station-form"),
   formStatus: document.querySelector("#form-status"),
@@ -66,6 +69,10 @@ function generateUploadKey() {
 function applyUploadKey(key) {
   elements.uploadKey.value = key;
   elements.stationUploadKey.value = key;
+}
+
+function applyReadKey(key) {
+  elements.readKey.value = key;
 }
 
 function parseSpreadsheetId(value) {
@@ -206,6 +213,22 @@ elements.generateKey.addEventListener("click", () => {
   }, 1600);
 });
 
+elements.copyReadKey.addEventListener("click", async () => {
+  const copied = await copyText(elements.readKey.value);
+  elements.copyReadKey.textContent = copied ? "已複製" : "複製失敗";
+  window.setTimeout(() => {
+    elements.copyReadKey.textContent = "複製";
+  }, 1600);
+});
+
+elements.generateReadKey.addEventListener("click", () => {
+  applyReadKey(generateUploadKey());
+  elements.generateReadKey.textContent = "已重新產生";
+  window.setTimeout(() => {
+    elements.generateReadKey.textContent = "重新產生";
+  }, 1600);
+});
+
 elements.stationForm.addEventListener("submit", (event) => {
   event.preventDefault();
 
@@ -242,5 +265,6 @@ elements.stationForm.addEventListener("submit", (event) => {
 });
 
 applyUploadKey(generateUploadKey());
+applyReadKey(generateUploadKey());
 loadCodeGs();
 updatePageProgress();

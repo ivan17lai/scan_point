@@ -26,9 +26,10 @@ Open **Project Settings > Script Properties** and add:
 | --- | --- |
 | `SPREADSHEET_ID` | The spreadsheet ID copied above |
 | `UPLOAD_KEY` | A random secret of at least 32 characters |
+| `READ_KEY` | A different random secret used only by Score Center |
 
-Use a password manager to generate `UPLOAD_KEY`. Do not put it in the sheet or
-inside `Code.gs`.
+Generate different values for `UPLOAD_KEY` and `READ_KEY`. Do not put either
+secret in the sheet or inside `Code.gs`.
 
 ## 4. Deploy the web app
 
@@ -55,6 +56,13 @@ After approval, configure:
 
 - Cloud upload URL: the exact `/exec` URL
 - Upload token: the same value as `UPLOAD_KEY`
+
+## 6. Open Score Center
+
+Open `score.html`, enter the `/exec` URL and `READ_KEY`, then load the scan
+rows. The key is entered at runtime and is not embedded in the public site.
+Score Center can also import exported CSV, JSON, and JSONL files without a
+network connection.
 
 ## Behavior
 

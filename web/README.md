@@ -7,14 +7,16 @@ It introduces the offline station workflow and three-module architecture, then p
 - one-click copy and download of `google_apps_script/Code.gs`;
 - local, cryptographically secure `UPLOAD_KEY` generation;
 - extraction of `SPREADSHEET_ID` from a Google Sheets URL;
-- download of a ScanPoint-compatible `station.json`.
+- download of a ScanPoint-compatible `station.json`;
+- browser-only score calculation from Apps Script, CSV, JSON, or JSONL.
 
 No form value is sent to a server or stored by the page. GitHub Pages serves
 only the files in this directory through `.github/workflows/pages.yml`.
 
 ## Local preview
 
-The page fetches `Code.gs`, so serve this folder over HTTP rather than opening
+The deployment page fetches `Code.gs`, so serve this folder over HTTP rather
+than opening
 `index.html` directly. For example:
 
 ```powershell

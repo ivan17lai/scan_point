@@ -20,6 +20,7 @@
           <a href="index.html#features">系統特色</a>
           <a href="index.html#architecture">專案架構</a>
           <a href="deploy.html" aria-current="page">部署教學</a>
+          <a href="score.html">成績計算</a>
         </nav>
         <a class="topbar__action" href="#apps-script">
           開始部署 <span aria-hidden="true">↓</span>
@@ -144,11 +145,22 @@
                 <button class="icon-button" id="generate-key" type="button">重新產生</button>
               </div>
             </div>
+            <div class="property-box field--wide">
+              <div>
+                <span class="property-box__label">READ_KEY</span>
+                <output id="read-key"></output>
+              </div>
+              <div class="compact-actions">
+                <button class="icon-button" id="copy-read-key" type="button">複製</button>
+                <button class="icon-button" id="generate-read-key" type="button">重新產生</button>
+              </div>
+            </div>
           </div>
 
           <p class="callout">
-            到 Apps Script 左側「專案設定 → 指令碼屬性」，新增上面兩個名稱和值。
-            金鑰也會自動帶入下一步的站點設定。
+            到 Apps Script 左側「專案設定 → 指令碼屬性」，新增上面三個名稱和值。
+            UPLOAD_KEY 會自動帶入下一步的站點設定；
+            READ_KEY 則用於成績計算頁讀取資料，兩者請勿設成相同值。
           </p>
         </section>
 
