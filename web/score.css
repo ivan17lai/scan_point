@@ -250,6 +250,12 @@
   margin-top: 18px;
 }
 
+.score-panel__footer > .button {
+  flex: 0 0 auto;
+}
+.score-panel__footer > .button[hidden] {
+  display: none;
+}
 .score-panel__footer .status {
   margin: 0;
 }
@@ -345,119 +351,120 @@
 }
 
 .score-stepper {
-  display: flex;
+  min-width: 0;
   min-height: 0;
-  flex-direction: column;
-  padding: 28px 22px 22px;
+  padding: 22px 0 18px;
   overflow: hidden;
-  color: #21005d;
-  background: #eaddff;
-  border: 1px solid rgba(33, 0, 93, 0.08);
-  border-radius: 42px 42px 14px 42px;
 }
 
 .score-stepper__heading {
-  padding: 4px 8px 24px;
+  padding: 0;
 }
 
 .score-stepper__heading p {
-  margin: 0 0 12px;
-  color: #65558f;
-  font-size: 0.7rem;
-  font-weight: 850;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
+  margin: 0 0 16px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.8rem;
+  font-weight: 720;
+  letter-spacing: 0.02em;
 }
 
 .score-stepper__heading > strong {
-  font-size: clamp(1.65rem, 2.4vw, 2.2rem);
-  font-weight: 620;
-  letter-spacing: -0.04em;
-  line-height: 1.06;
+  display: block;
+  margin: 0 0 24px;
+  font-size: clamp(2rem, 3vw, 2.55rem);
+  font-weight: 520;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
 }
 
 .score-stepper nav {
   display: grid;
-  gap: 9px;
+  gap: 4px;
 }
 
 .score-stepper button {
   display: grid;
   width: 100%;
-  min-height: 84px;
-  grid-template-columns: 38px minmax(0, 1fr);
+  min-height: 62px;
+  grid-template-columns: 30px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  color: #49454f;
-  background: rgba(255, 255, 255, 0.48);
+  gap: 9px;
+  padding: 10px 12px;
+  color: var(--md-sys-color-on-surface-variant);
+  background: transparent;
   border: 1px solid transparent;
-  border-radius: 24px 24px 24px 8px;
+  border-radius: 22px;
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 160ms ease, border-radius 160ms ease, transform 160ms ease;
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease,
+    border-radius 220ms cubic-bezier(0.2, 0, 0, 1),
+    transform 180ms ease;
 }
 
 .score-stepper button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.82);
-  transform: translateX(-2px);
+  color: var(--md-sys-color-on-surface);
+  background: var(--md-sys-color-surface-container);
 }
 
 .score-stepper button:disabled {
-  opacity: 0.46;
+  opacity: 0.42;
   cursor: not-allowed;
 }
 
 .score-stepper button[aria-current="step"] {
-  color: #ffffff;
-  background: #65558f;
-  border-radius: 24px 8px 24px 24px;
-  box-shadow: 0 7px 18px rgba(33, 0, 93, 0.18);
+  color: var(--md-sys-color-on-primary-container);
+  background: var(--md-sys-color-primary-container);
+  border-color: var(--md-sys-color-outline);
+  border-radius: 24px;
+}
+
+.score-stepper button[aria-current="step"]:hover {
+  transform: translateX(-2px);
 }
 
 .score-stepper button > span:first-child {
-  display: grid;
-  width: 36px;
-  height: 36px;
-  place-items: center;
-  color: #65558f;
-  background: #ffffff;
-  border-radius: 13px 13px 13px 5px;
   font-size: 0.68rem;
   font-weight: 850;
+  letter-spacing: 0.08em;
 }
 
 .score-stepper button > span:last-child {
   display: grid;
   min-width: 0;
-  gap: 5px;
+  gap: 3px;
 }
 
 .score-stepper button strong {
-  font-size: 0.9rem;
+  font-size: 0.94rem;
+  font-weight: 620;
+  line-height: 1.35;
 }
 
 .score-stepper button small {
   overflow: hidden;
   color: inherit;
   font-size: 0.68rem;
-  opacity: 0.76;
+  opacity: 0.72;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .score-stepper__footer {
   display: grid;
-  gap: 10px;
-  margin-top: auto;
-  padding: 22px 8px 2px;
+  gap: 9px;
+  margin-top: 22px;
+  padding-inline: 12px;
 }
 
 .score-stepper__footer > div {
-  height: 5px;
+  height: 6px;
   overflow: hidden;
-  background: rgba(101, 85, 143, 0.2);
+  background: var(--md-sys-color-surface-container-high);
   border-radius: 999px;
 }
 
@@ -465,15 +472,16 @@
   display: block;
   width: var(--score-progress, 33.333%);
   height: 100%;
-  background: #65558f;
+  background: var(--md-sys-color-primary);
   border-radius: inherit;
-  transition: width 180ms ease;
+  transition: width 320ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 .score-stepper__footer output {
-  color: #65558f;
-  font-size: 0.7rem;
-  font-weight: 750;
+  color: var(--md-sys-color-on-surface-variant);
+  font-family: var(--font);
+  font-size: 0.75rem;
+  font-weight: 650;
 }
 
 .score-app.is-results {
@@ -814,6 +822,7 @@
     white-space: normal;
   }
 
+  .score-panel__footer > .button,
   .score-rule-actions .button,
   .score-results__actions,
   .score-results__actions .button,

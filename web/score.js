@@ -15,6 +15,7 @@ const elements = {
   dropzone: document.querySelector("#score-dropzone"),
   dataStatus: document.querySelector("#score-data-status"),
   dataUnlockHint: document.querySelector("#data-unlock-hint"),
+  goToRules: document.querySelector("#go-to-rules"),
   recordCount: document.querySelector("#loaded-record-count"),
   stationCount: document.querySelector("#loaded-station-count"),
   sourceLabel: document.querySelector("#loaded-source"),
@@ -114,7 +115,8 @@ function describeLoaded(records, source) {
   renderStationChips(stations);
   resetResults();
   updateStepAccess();
-  elements.dataUnlockHint.textContent = "第二步已解鎖，請從右側切換";
+  elements.dataUnlockHint.textContent = "第二步已解鎖";
+  elements.goToRules.hidden = false;
   setStatus(
     elements.dataStatus,
     `已載入 ${validRecords.length} 筆有效資料，辨識到 ${stations.length} 個站點。`,
@@ -447,6 +449,7 @@ elements.stepButtons.forEach((button) => {
     goToStep(Number(button.dataset.goStep));
   });
 });
+elements.goToRules.addEventListener("click", () => goToStep(2));
 elements.loadCloud.addEventListener("click", loadCloud);
 elements.fileInput.addEventListener("change", () =>
   loadFiles(elements.fileInput.files),

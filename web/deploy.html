@@ -22,34 +22,13 @@
           <a href="deploy.html" aria-current="page">部署教學</a>
           <a href="score.html">成績計算</a>
         </nav>
-        <a class="topbar__action" href="#apps-script">
+        <a class="topbar__action" href="#deploy-overview">
           開始部署 <span aria-hidden="true">↓</span>
         </a>
       </div>
     </header>
 
     <main id="top" class="deployment-main">
-      <section class="shell deployment-hero">
-        <div class="deployment-hero__copy">
-          <a class="back-link" href="index.html"><span aria-hidden="true">←</span> 回到專案首頁</a>
-          <p class="eyebrow">SCANPOINT DEPLOYMENT GUIDE</p>
-          <h1>從空白試算表，<br>到可以上傳的掃描站。</h1>
-          <p>
-            依序完成五個步驟。頁面會準備程式碼、產生金鑰與設定檔，
-            並明確告訴你 Google Apps Script 每個部署選項要怎麼選。
-          </p>
-        </div>
-        <aside class="deployment-hero__prep" aria-label="開始前準備">
-          <span class="deployment-hero__prep-label">開始前準備</span>
-          <h2>三樣東西</h2>
-          <ul>
-            <li><i>1</i><span>一份空白的 Google 試算表</span></li>
-            <li><i>2</i><span>可以編輯試算表的 Google 帳號</span></li>
-            <li><i>3</i><span>要部署的 Windows 掃描站資料</span></li>
-          </ul>
-          <p>敏感資料只在你的瀏覽器內處理。</p>
-        </aside>
-      </section>
 
       <div class="shell content-layout content-layout--deployment">
         <aside class="page-progress" aria-label="本頁進度">
@@ -57,33 +36,65 @@
             <p class="page-progress__eyebrow">本頁內容</p>
             <h2>完成<br>ScanPoint<br>部署</h2>
             <nav class="page-progress__nav" aria-label="部署步驟">
-              <a href="#apps-script" data-progress-section="apps-script" aria-current="step">
-                <span>01</span><strong>複製 Apps Script</strong>
+              <a href="#deploy-overview" data-progress-section="deploy-overview" aria-current="step">
+                <span>01</span><strong>部署前準備</strong>
+              </a>
+              <a href="#apps-script" data-progress-section="apps-script">
+                <span>02</span><strong>複製 Apps Script</strong>
               </a>
               <a href="#cloud-settings" data-progress-section="cloud-settings">
-                <span>02</span><strong>設定試算表與金鑰</strong>
+                <span>03</span><strong>設定試算表與金鑰</strong>
               </a>
               <a href="#web-app-deploy" data-progress-section="web-app-deploy">
-                <span>03</span><strong>部署網頁應用程式</strong>
+                <span>04</span><strong>部署網頁應用程式</strong>
               </a>
               <a href="#station-config" data-progress-section="station-config">
-                <span>04</span><strong>下載站點設定</strong>
+                <span>05</span><strong>下載站點設定</strong>
               </a>
               <a href="#deploy-finish" data-progress-section="deploy-finish">
-                <span>05</span><strong>完成現場部署</strong>
+                <span>06</span><strong>完成現場部署</strong>
               </a>
             </nav>
             <div class="page-progress__footer">
               <div class="page-progress__track"><span id="page-progress-bar"></span></div>
-              <output id="page-progress-label">步驟 1 / 5</output>
+              <output id="page-progress-label">步驟 1 / 6</output>
             </div>
           </div>
         </aside>
 
         <div class="workflow">
+        <section id="deploy-overview" class="step-card deploy-overview"
+          aria-labelledby="deploy-overview-title">
+          <div class="step-card__heading">
+            <span class="step-number"><b>01</b><i aria-hidden="true">✓</i></span>
+            <div>
+              <p class="section-kicker">Before you begin</p>
+              <h2 id="deploy-overview-title">部署前先準備好三樣東西</h2>
+            </div>
+          </div>
+          <div class="deploy-overview__grid">
+            <div class="deploy-overview__copy">
+              <p class="eyebrow">SCANPOINT DEPLOYMENT GUIDE</p>
+              <h3>從空白試算表，<br>到可以上傳的掃描站。</h3>
+              <p>
+                接下來依序完成六個步驟。頁面會準備程式碼、產生金鑰與設定檔，
+                並明確標示 Google Apps Script 的每個部署選項。
+              </p>
+              <a class="back-link" href="index.html"><span aria-hidden="true">←</span> 回到專案首頁</a>
+            </div>
+            <div class="deploy-overview__prep" aria-label="開始前準備">
+              <ol>
+                <li><i>1</i><span>一份空白的 Google 試算表</span></li>
+                <li><i>2</i><span>可以編輯試算表的 Google 帳號</span></li>
+                <li><i>3</i><span>要部署的 Windows 掃描站資料</span></li>
+              </ol>
+              <p>準備完成後再往下進行；敏感資料只在你的瀏覽器內處理。</p>
+            </div>
+          </div>
+        </section>
         <section id="apps-script" class="step-card step-card--violet" aria-labelledby="step-code-title">
           <div class="step-card__heading">
-            <span class="step-number"><b>01</b><i aria-hidden="true">{ }</i></span>
+            <span class="step-number"><b>02</b><i aria-hidden="true">{ }</i></span>
             <div>
               <p class="section-kicker">Google Apps Script</p>
               <h2 id="step-code-title">複製雲端接收程式</h2>
@@ -110,7 +121,7 @@
 
         <section id="cloud-settings" class="step-card step-card--blue" aria-labelledby="step-cloud-title">
           <div class="step-card__heading">
-            <span class="step-number"><b>02</b><i aria-hidden="true">✦</i></span>
+            <span class="step-number"><b>03</b><i aria-hidden="true">✦</i></span>
             <div>
               <p class="section-kicker">Script Properties</p>
               <h2 id="step-cloud-title">準備試算表 ID 與金鑰</h2>
@@ -166,7 +177,7 @@
 
         <section id="web-app-deploy" class="step-card step-card--yellow" aria-labelledby="step-deploy-title">
           <div class="step-card__heading">
-            <span class="step-number"><b>03</b><i aria-hidden="true">↗</i></span>
+            <span class="step-number"><b>04</b><i aria-hidden="true">↗</i></span>
             <div>
               <p class="section-kicker">Web app deployment</p>
               <h2 id="step-deploy-title">部署成網頁應用程式</h2>
@@ -222,7 +233,7 @@
 
         <section id="station-config" class="step-card step-card--peach" aria-labelledby="step-station-title">
           <div class="step-card__heading">
-            <span class="step-number"><b>04</b><i aria-hidden="true">↓</i></span>
+            <span class="step-number"><b>05</b><i aria-hidden="true">↓</i></span>
             <div>
               <p class="section-kicker">Station configuration</p>
               <h2 id="step-station-title">下載站點設定檔</h2>
@@ -283,7 +294,7 @@
 
         <section id="deploy-finish" class="finish-card" aria-labelledby="finish-title">
           <div class="finish-card__title">
-            <span class="finish-card__check" aria-hidden="true">✓</span>
+            <span class="finish-card__check" aria-hidden="true">06</span>
             <div>
               <p class="section-kicker">READY TO DEPLOY</p>
               <h2 id="finish-title">最後放到正確位置</h2>
