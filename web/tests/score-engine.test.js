@@ -65,6 +65,21 @@ test("inferStations uses natural station id ordering", () => {
   );
 });
 
+test("a torn final line keeps the records written before it", () => {
+  const intact = JSON.stringify(scan("A", "CP1", "2026-08-10T01:00:00Z"));
+  const issues = [];
+  // What a station leaves behind when the power is cut mid-write.
+  const records = engine.parseDataText(
+    `${intact}\n{"record_id":"scan-2","card_id":"B","stat`,
+    "scans.jsonl",
+    issues,
+  );
+
+  assert.equal(records.length, 1);
+  assert.equal(records[0].card_id, "A");
+  assert.deepEqual(issues, [{type: "unreadableLines", count: 1}]);
+});
+
 function scan(card, station, at) {
   return {
     record_id: `${card}-${station}-${at}`,

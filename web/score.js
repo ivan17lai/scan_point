@@ -99,7 +99,7 @@ function goToStep(step) {
   updateStepAccess();
 }
 
-function describeLoaded(records, source) {
+function describeLoaded(records, source, issues = []) {
   const validRecords = engine.normalizeRecords(records);
   const stations = engine.inferStations(records);
   if (!validRecords.length || !stations.length) {
@@ -120,10 +120,28 @@ function describeLoaded(records, source) {
   updateStepAccess();
   elements.dataUnlockHint.textContent = "第二步已解鎖";
   elements.goToRules.hidden = false;
+
+  // Anything that came in but could not be used is said out loud. A silently
+  // shorter result is the one failure an operator cannot notice until the
+  // rankings are already wrong.
+  const unreadableLines = issues
+    .filter((issue) => issue.type === "unreadableLines")
+    .reduce((total, issue) => total + issue.count, 0);
+  const unusableRecords = records.length - validRecords.length;
+  const notes = [];
+  if (unreadableLines) {
+    notes.push(`跳過 ${unreadableLines} 行無法解析的內容（通常是斷電造成的殘缺結尾）`);
+  }
+  if (unusableRecords) {
+    notes.push(`忽略 ${unusableRecords} 筆缺少卡號、站點或可辨識時間的紀錄`);
+  }
   setStatus(
     elements.dataStatus,
-    `已載入 ${validRecords.length} 筆有效資料，辨識到 ${stations.length} 個站點。`,
-    "success",
+    [
+      `已載入 ${validRecords.length} 筆有效資料，辨識到 ${stations.length} 個站點。`,
+      ...notes.map((note) => `${note}。`),
+    ].join(""),
+    notes.length ? "warning" : "success",
   );
 }
 
@@ -180,14 +198,16 @@ async function loadFiles(files) {
   setStatus(elements.dataStatus, "正在讀取檔案…");
   try {
     const merged = [];
+    const issues = [];
     for (const file of selected) {
       const text = await file.text();
-      merged.push(...engine.parseDataText(text, file.name));
+      merged.push(...engine.parseDataText(text, file.name, issues));
     }
     if (!merged.length) throw new Error("檔案中沒有可辨識的掃描紀錄");
     describeLoaded(
       merged,
       selected.length === 1 ? selected[0].name : `${selected.length} 個本機檔案`,
+      issues,
     );
   } catch (error) {
     setStatus(elements.dataStatus, `讀取失敗：${error.message}`, "error");

@@ -81,11 +81,11 @@ function readScores(e) {
 
   const values = sheet
     .getRange(2, 1, rowCount, SCAN_HEADERS.length)
-    .getDisplayValues();
+    .getValues();
   const scans = values.map((row) => {
     const record = {};
     SCAN_HEADERS.forEach((header, index) => {
-      record[header] = row[index];
+      record[header] = normalizeCell(row[index]);
     });
     return record;
   });
@@ -96,6 +96,16 @@ function readScores(e) {
     generated_at: new Date().toISOString(),
     scans,
   });
+}
+
+// Sheets may store a timestamp written as text as a real date value. Reading
+// the display string would then hand the scoring page a localised date it
+// cannot parse, and the row would be dropped without a word — so the
+// underlying value is read and dates are re-encoded as ISO 8601.
+function normalizeCell(value) {
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) return value.toISOString();
+  return String(value);
 }
 
 function scoreResponse(e, value) {
@@ -155,11 +165,12 @@ function doPost(e) {
 
 function writeUpload(spreadsheetId, body, scans, operations) {
   const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
-  const scanSheet = ensureSheet(spreadsheet, 'scans', SCAN_HEADERS);
+  const scanSheet = ensureSheet(spreadsheet, 'scans', SCAN_HEADERS, true);
   const operationSheet = ensureSheet(
     spreadsheet,
     'operations',
     OPERATION_HEADERS,
+    true,
   );
   const uploadSheet = ensureSheet(spreadsheet, 'uploads', UPLOAD_HEADERS);
   const summarySheet = ensureSheet(spreadsheet, 'summary', SUMMARY_HEADERS);
@@ -273,10 +284,20 @@ function upsertSummary(sheet, body, scans, operations, receivedAt) {
   range.setValues([row]);
 }
 
-function ensureSheet(spreadsheet, name, headers) {
+// `asText` keeps a record sheet's columns formatted as plain text. Without it
+// Sheets reinterprets what is written: an ISO timestamp becomes a date value
+// that reads back in the spreadsheet's locale, and a card id with leading
+// zeros becomes a number that no longer matches the card. Both losses are
+// silent, and both only surface once the results are already wrong.
+function ensureSheet(spreadsheet, name, headers, asText) {
   const sheet =
       spreadsheet.getSheetByName(name) || spreadsheet.insertSheet(name);
   if (sheet.getLastRow() === 0) {
+    if (asText) {
+      sheet
+        .getRange(1, 1, sheet.getMaxRows(), headers.length)
+        .setNumberFormat('@');
+    }
     const headerRange = sheet.getRange(1, 1, 1, headers.length);
     headerRange.setValues([headers]);
     headerRange.setFontWeight('bold');

@@ -574,6 +574,10 @@ a:focus-visible {
   color: var(--md-sys-color-error);
 }
 
+.status[data-tone="warning"] {
+  color: var(--md-sys-color-tertiary);
+}
+
 .code-panel {
   margin-top: 24px;
   overflow: hidden;

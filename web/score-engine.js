@@ -59,7 +59,14 @@
     );
   }
 
-  function parseJsonText(text) {
+  // Records the parts of a file we could not use, so the caller can say so
+  // instead of quietly handing back fewer records than the operator supplied.
+  function noteIssue(issues, type, count) {
+    if (!count || !Array.isArray(issues)) return;
+    issues.push({type, count});
+  }
+
+  function parseJsonText(text, issues = null) {
     const trimmed = text.replace(/^\uFEFF/, "").trim();
     if (!trimmed) return [];
 
@@ -78,16 +85,27 @@
       }
       return [];
     } catch (_) {
-      return trimmed
-        .split(/\r?\n/)
-        .filter((line) => line.trim())
-        .map((line) => JSON.parse(line));
+      // JSONL, one record per line. A station that loses power mid-write leaves
+      // a torn last line, and the station's own reader keeps everything before
+      // it — so the whole file must not be thrown away here over that one line.
+      const records = [];
+      let unreadable = 0;
+      for (const line of trimmed.split(/\r?\n/)) {
+        if (!line.trim()) continue;
+        try {
+          records.push(JSON.parse(line));
+        } catch (_) {
+          unreadable += 1;
+        }
+      }
+      noteIssue(issues, "unreadableLines", unreadable);
+      return records;
     }
   }
 
-  function parseDataText(text, filename = "") {
+  function parseDataText(text, filename = "", issues = null) {
     const extension = filename.toLowerCase().split(".").pop();
-    return extension === "csv" ? parseCsv(text) : parseJsonText(text);
+    return extension === "csv" ? parseCsv(text) : parseJsonText(text, issues);
   }
 
   function clean(value) {
