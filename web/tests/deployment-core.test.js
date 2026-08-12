@@ -1,6 +1,8 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const test = require("node:test");
 const core = require("../deployment-core.js");
 const JSZip = require("../vendor/jszip.min.js");
@@ -173,4 +175,19 @@ test("cloud and offline archives include only the selected canonical mapping", a
   assert.equal(offlinePackage.file("cloud.config"), null);
   assert.equal(offlinePackage.file("upload.key"), null);
   assert.ok(offlinePackage.file("id-mapping.json"));
+});
+
+test("downloadable ID mapping example matches the inline preview", () => {
+  const source = fs.readFileSync(
+    path.resolve(__dirname, "../examples/id-mapping-example.csv"),
+    "utf8",
+  );
+  assert.deepEqual(core.normalizeIdMapping(source, "id-mapping-example.csv"), {
+    format: "scanpoint-id-mapping",
+    schema_version: 1,
+    entries: [
+      {id: "04A81C92", text: "王小明 · 第一隊"},
+      {id: "B3702F10", text: "李小華 · 第二棒"},
+    ],
+  });
 });

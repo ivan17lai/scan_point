@@ -334,6 +334,25 @@
               <h3>上傳選手手環對照表</h3>
               <p>支援含 <code>id</code>、<code>text</code> 標題的 UTF-8 CSV／TSV，或 JSON。</p>
             </div>
+            <div class="id-mapping-format" aria-label="對照表欄位說明">
+              <div><code>id</code><span>填入 NFC 手環掃描出的原始 ID，例如 <b>04A81C92</b></span></div>
+              <div><code>text</code><span>填入希望掃描畫面顯示的內容，例如 <b>王小明 · 第一隊</b></span></div>
+              <a class="button button--quiet id-mapping-example-download" href="examples/id-mapping-example.csv" download>
+                下載 CSV 範例檔 <span aria-hidden="true">↓</span>
+              </a>
+            </div>
+            <div class="id-mapping-preview">
+              <p><strong>CSV 範例預覽</strong><span>每一列代表一個選手手環</span></p>
+              <div class="id-mapping-preview__scroll">
+                <table>
+                  <thead><tr><th>id</th><th>text</th></tr></thead>
+                  <tbody>
+                    <tr><td>04A81C92</td><td>王小明 · 第一隊</td></tr>
+                    <tr><td>B3702F10</td><td>李小華 · 第二棒</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
             <div class="id-mapping-upload__actions">
               <label class="id-mapping-picker" for="id-mapping-file">
                 <span>上傳對照表</span>
