@@ -18,6 +18,8 @@ const elements = {
   dropzone: document.querySelector("#score-dropzone"),
   sourceGrid: document.querySelector("#score-source-grid"),
   reloadData: document.querySelector("#reload-data"),
+  loadedView: document.querySelector("#loaded-data-view"),
+  loadedStationList: document.querySelector("#loaded-station-list"),
   dataStatus: document.querySelector("#score-data-status"),
   dataUnlockHint: document.querySelector("#data-unlock-hint"),
   goToRules: document.querySelector("#go-to-rules"),
@@ -118,11 +120,13 @@ function describeLoaded(records, source, issues = []) {
   elements.sourceLabel.textContent = source;
   elements.stationOrder.value = stations.map((station) => station.id).join(", ");
   renderStationChips(stations);
+  renderStationChips(stations, elements.loadedStationList, false);
   resetResults();
   updateStepAccess();
   elements.dataUnlockHint.textContent = "第二步已解鎖";
   elements.goToRules.hidden = false;
   elements.sourceGrid.hidden = true;
+  elements.loadedView.hidden = false;
   elements.reloadData.hidden = false;
 
   // Anything that came in but could not be used is said out loud. A silently
@@ -160,6 +164,8 @@ function reopenDataUpload() {
   elements.sourceLabel.textContent = sourceDescription;
   elements.stationOrder.value = "";
   elements.sourceGrid.hidden = false;
+  elements.loadedView.hidden = true;
+  elements.loadedStationList.replaceChildren();
   elements.reloadData.hidden = true;
   elements.goToRules.hidden = true;
   elements.dataUnlockHint.textContent = "完成後解鎖下一步";
@@ -169,13 +175,14 @@ function reopenDataUpload() {
   goToStep(1);
 }
 
-function renderStationChips(stations) {
-  elements.stationChips.replaceChildren();
+function renderStationChips(stations, target = elements.stationChips, showEmpty = true) {
+  target.replaceChildren();
   if (!stations.length) {
+    if (!showEmpty) return;
     const empty = document.createElement("span");
     empty.className = "station-chip station-chip--empty";
     empty.textContent = "載入資料後顯示站點";
-    elements.stationChips.append(empty);
+    target.append(empty);
     return;
   }
 
@@ -189,7 +196,7 @@ function renderStationChips(stations) {
       ? `${station.id} · ${station.name}`
       : station.id;
     chip.append(number, label);
-    elements.stationChips.append(chip);
+    target.append(chip);
   });
 }
 

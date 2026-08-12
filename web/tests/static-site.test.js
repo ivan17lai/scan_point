@@ -61,8 +61,13 @@ test("successful data loading can be reset for another upload", () => {
   const html = fs.readFileSync(path.join(webRoot, "score.html"), "utf8");
   const script = fs.readFileSync(path.join(webRoot, "score.js"), "utf8");
   assert.match(html, /id="score-source-grid"/);
+  assert.match(html, /id="loaded-data-view" hidden/);
+  assert.match(html, /id="loaded-station-list"/);
+  assert.match(html, /辨識到的站點節點/);
   assert.match(html, /id="reload-data"[^>]*hidden>重新上傳<\/button>/);
   assert.match(script, /elements\.sourceGrid\.hidden = true/);
+  assert.match(script, /elements\.loadedView\.hidden = false/);
+  assert.match(script, /renderStationChips\(stations, elements\.loadedStationList, false\)/);
   assert.match(script, /elements\.reloadData\.hidden = false/);
   assert.match(script, /function reopenDataUpload\(\)/);
   assert.match(script, /elements\.reloadData\.addEventListener\("click", reopenDataUpload\)/);

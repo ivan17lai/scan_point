@@ -298,11 +298,26 @@
   color: var(--md-sys-color-on-surface-variant);
 }
 
+.score-app[data-data-ready="true"] .score-card--data {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.loaded-data-view {
+  display: grid;
+  align-self: center;
+  align-content: start;
+  gap: 18px;
+}
+
+.loaded-data-view[hidden] {
+  display: none;
+}
+
 .loaded-summary {
   display: grid;
   grid-template-columns: 0.7fr 0.7fr 1.6fr;
   gap: 10px;
-  margin-top: 18px;
 }
 
 .loaded-summary > div {
@@ -333,22 +348,13 @@
   font-size: 0.94rem;
 }
 
-.loaded-summary-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 12px;
-}
-
-.loaded-summary-actions .button[hidden] {
-  display: none;
-}
-
 .score-panel__footer {
   display: flex;
   min-height: 52px;
   align-items: center;
-  justify-content: space-between;
-  gap: 18px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 14px;
   margin-top: 18px;
 }
 
@@ -359,6 +365,7 @@
   display: none;
 }
 .score-panel__footer .status {
+  flex: 1 1 300px;
   margin: 0;
 }
 
@@ -414,6 +421,46 @@
   padding-left: 14px;
   color: #6b5e59;
   font-weight: 600;
+}
+
+.loaded-stations {
+  padding: clamp(20px, 3vw, 30px);
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 28px 28px 10px 28px;
+}
+
+.loaded-stations__heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.loaded-stations__heading h2 {
+  margin: 3px 0 0;
+  color: var(--md-sys-color-on-primary-container);
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+}
+
+.loaded-stations__heading > span {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.78rem;
+}
+
+.loaded-station-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.loaded-station-list .station-chip {
+  color: var(--md-sys-color-on-primary-container);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.loaded-station-list .station-chip b {
+  background: var(--md-sys-color-primary);
 }
 
 .score-rule-note {
@@ -920,6 +967,12 @@
 
   .loaded-summary > div:last-child {
     grid-column: 1 / -1;
+  }
+
+  .loaded-stations__heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
   }
 
   .score-panel__footer,

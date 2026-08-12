@@ -102,19 +102,29 @@
               </article>
             </div>
 
-            <div class="loaded-summary" aria-live="polite">
-              <div><span>紀錄</span><strong id="loaded-record-count">0</strong></div>
-              <div><span>站點</span><strong id="loaded-station-count">0</strong></div>
-              <div><span>來源</span><strong id="loaded-source">尚未載入</strong></div>
-            </div>
-            <div class="loaded-summary-actions">
-              <button class="button button--quiet" id="reload-data" type="button" hidden>重新上傳</button>
+            <div class="loaded-data-view" id="loaded-data-view" hidden>
+              <div class="loaded-summary" aria-live="polite">
+                <div><span>紀錄</span><strong id="loaded-record-count">0</strong></div>
+                <div><span>站點</span><strong id="loaded-station-count">0</strong></div>
+                <div><span>來源</span><strong id="loaded-source">尚未載入</strong></div>
+              </div>
+              <section class="loaded-stations" aria-labelledby="loaded-stations-title">
+                <div class="loaded-stations__heading">
+                  <div>
+                    <p class="section-kicker">Detected checkpoints</p>
+                    <h2 id="loaded-stations-title">辨識到的站點節點</h2>
+                  </div>
+                  <span>依站點編號排列</span>
+                </div>
+                <div class="loaded-station-list" id="loaded-station-list"></div>
+              </section>
             </div>
             <div class="score-panel__footer">
               <p class="status score-status" id="score-data-status" role="status">
                 選擇一種方式載入資料。
               </p>
               <span class="unlock-hint" id="data-unlock-hint">完成後解鎖下一步</span>
+              <button class="button button--quiet" id="reload-data" type="button" hidden>重新上傳</button>
               <button class="button button--accent" id="go-to-rules" type="button" hidden>
                 下一步：設定順序 <span aria-hidden="true">→</span>
               </button>
