@@ -2292,6 +2292,10 @@ a:focus-visible {
   }
 }
 
+.id-mapping-skip-row {
+  margin: -8px 0 24px;
+}
+
 .id-mapping-upload {
   display: grid;
   gap: 16px;

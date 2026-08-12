@@ -77,6 +77,7 @@ test("ID mapping is an optional step between deployment and download", () => {
   assert.match(html, /ID 對照表[\s\S]*選用/);
   assert.match(html, /選手姓名、隊名、組別或棒次/);
   assert.match(html, /原始手環 ID/);
+  assert.match(html, /href="#station-config">跳過<\/a>/);
   assert.match(script, /offline \? "01" : "04"/);
   assert.match(script, /offline \? "02" : "05"/);
   assert.match(script, /offline \? "03" : "06"/);
