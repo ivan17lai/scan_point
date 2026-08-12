@@ -12,6 +12,7 @@ import 'platform/kiosk_lock.dart';
 import 'scanner/scan_decoder.dart';
 import 'storage/config_store.dart';
 import 'storage/event_log.dart';
+import 'storage/id_mapping_store.dart';
 import 'storage/scan_store.dart';
 
 /// What the runner-facing screen is showing.
@@ -39,6 +40,7 @@ class AppController extends ChangeNotifier {
     this._tones,
     this._config,
     this.events,
+    this._idMapping,
   ) {
     _decoder = ScanDecoder(
       onFrameStart: _handleFrameStart,
@@ -55,6 +57,7 @@ class AppController extends ChangeNotifier {
   /// Everything the software did, as opposed to what the runners did.
   final EventLog events;
   final TonePlayer _tones;
+  final IdMappingStore _idMapping;
 
   late final ScanDecoder _decoder;
 
@@ -71,6 +74,8 @@ class AppController extends ChangeNotifier {
 
   String? _cardId;
   String? get cardId => _cardId;
+  String? get cardLabel =>
+      _cardId == null ? null : _idMapping.labelFor(_cardId!);
 
   DateTime? _recordedAt;
   DateTime? get recordedAt => _recordedAt;
@@ -100,6 +105,7 @@ class AppController extends ChangeNotifier {
     final store = await ScanStore.open(extraDir: config.extraDir);
     final tones = await TonePlayer.create();
     final events = EventLog(_eventTargets(store, config.stationId));
+    final idMapping = await IdMappingStore.open();
 
     final controller = AppController._(
       store,
@@ -107,6 +113,7 @@ class AppController extends ChangeNotifier {
       tones,
       config,
       events,
+      idMapping,
     );
     await events.record(
       EventType.appStart,
@@ -410,6 +417,33 @@ class AppController extends ChangeNotifier {
 
   List<ScanRecord> get recentScans => _store.recentFor(_config.stationId);
   List<ScanRecord> get scanHistory => _store.history;
+
+  int get idMappingCount => _idMapping.count;
+  String get idMappingPath => _idMapping.file.path;
+  String? get idMappingWarning => _idMapping.loadWarning;
+  String? labelForCard(String cardId) => _idMapping.labelFor(cardId);
+
+  Future<int> importIdMapping(File source) async {
+    final mapping = await _idMapping.import(source);
+    await events.record(
+      EventType.idMappingChange,
+      stationId: _config.stationId,
+      detail: {'action': 'import', 'entries': mapping.length},
+    );
+    notifyListeners();
+    return mapping.length;
+  }
+
+  Future<void> clearIdMapping() async {
+    final previousCount = _idMapping.count;
+    await _idMapping.clear();
+    await events.record(
+      EventType.idMappingChange,
+      stationId: _config.stationId,
+      detail: {'action': 'clear', 'entries': previousCount},
+    );
+    notifyListeners();
+  }
 
   Future<void> requestExit() async {
     // Awaited so the last line reaches disk before main() tears the process

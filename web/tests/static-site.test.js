@@ -44,3 +44,41 @@ test("every direct ID selector used by page scripts exists in its HTML", () => {
     }
   }
 });
+
+test("deployment mapping controls stay in their intended scopes", () => {
+  const script = fs.readFileSync(path.join(webRoot, "app.js"), "utf8");
+  const busyStart = script.indexOf("function setStationDownloadBusy(busy)");
+  const busyEnd = script.indexOf("function downloadBlob", busyStart);
+  const busyFunction = script.slice(busyStart, busyEnd);
+  assert.match(busyFunction, /idMappingFile\.disabled = busy/);
+  assert.match(busyFunction, /clearIdMapping\.disabled = busy/);
+
+  const offlineStart = script.indexOf("async function downloadOfflinePackage");
+  const listenerStart = script.indexOf(
+    'elements.idMappingFile.addEventListener("change"',
+  );
+  const keyListenerStart = script.indexOf(
+    'elements.downloadKeyBundle.addEventListener("click"',
+  );
+  const submitStart = script.indexOf(
+    'elements.stationForm.addEventListener("submit"',
+  );
+  assert.ok(listenerStart > keyListenerStart, "mapping listener must be registered globally");
+  assert.ok(listenerStart < submitStart, "mapping listener must be registered globally");
+});
+
+test("ID mapping is an optional step between deployment and download", () => {
+  const html = fs.readFileSync(path.join(webRoot, "deploy.html"), "utf8");
+  const script = fs.readFileSync(path.join(webRoot, "app.js"), "utf8");
+  const deployIndex = html.indexOf('id="web-app-deploy"');
+  const mappingIndex = html.indexOf('id="id-mapping"');
+  const downloadIndex = html.indexOf('id="station-config"');
+  assert.ok(deployIndex < mappingIndex && mappingIndex < downloadIndex);
+  assert.match(html, /ID 對照表[\s\S]*選用/);
+  assert.match(html, /選手姓名、隊名、組別或棒次/);
+  assert.match(html, /原始手環 ID/);
+  assert.match(html, /href="#station-config">跳過這個步驟<\/a>/);
+  assert.match(script, /offline \? "01" : "04"/);
+  assert.match(script, /offline \? "02" : "05"/);
+  assert.match(script, /offline \? "03" : "06"/);
+});

@@ -79,16 +79,19 @@
               <a href="#web-app-deploy" data-progress-section="web-app-deploy" data-cloud-only>
                 <span>03</span><strong>取得正式部署網址</strong>
               </a>
+              <a href="#id-mapping" data-progress-section="id-mapping">
+                <span data-mapping-step-number>04</span><strong>ID 對照表 <em class="optional-label">選用</em></strong>
+              </a>
               <a href="#station-config" data-progress-section="station-config">
-                <span data-download-step-number>04</span><strong data-download-nav-label>下載完整掃描站</strong>
+                <span data-download-step-number>05</span><strong data-download-nav-label>下載完整掃描站</strong>
               </a>
               <a href="#deploy-finish" data-progress-section="deploy-finish">
-                <span data-finish-step-number>05</span><strong>解壓縮並確認</strong>
+                <span data-finish-step-number>06</span><strong>解壓縮並確認</strong>
               </a>
             </nav>
             <div class="page-progress__footer">
               <div class="page-progress__track"><span id="page-progress-bar"></span></div>
-              <output id="page-progress-label">步驟 1 / 5</output>
+              <output id="page-progress-label">步驟 1 / 6</output>
             </div>
           </div>
         </aside>
@@ -313,6 +316,60 @@
           </p>
         </section>
 
+        <section id="id-mapping" class="step-card step-card--violet" aria-labelledby="step-mapping-title">
+          <div class="step-card__heading">
+            <span class="step-number"><b data-mapping-step-number>04</b><i aria-hidden="true">Aa</i></span>
+            <div>
+              <p class="section-kicker">選用功能</p>
+              <h2 id="step-mapping-title">把NFC ID轉換為文字訊息</h2>
+            </div>
+          </div>
+          <p class="section-copy">
+            如果選手的 NFC 手環只會掃出一串不易辨識的 ID，可以在這裡上傳對照表，
+            讓掃描成功與重複刷卡畫面改為顯示選手姓名、隊名、組別或棒次，例如把
+            <code>04A81C92</code> 顯示成「王小明 · 第一隊」。這個步驟可以略過，未提供時仍顯示原始 ID。
+          </p>
+          <div class="id-mapping-skip-row">
+            <a class="button button--quiet" href="#station-config">跳過這個步驟</a>
+          </div>
+          <div class="id-mapping-upload">
+            <div>
+              <h3>上傳選手手環對照表</h3>
+              <p>支援含 <code>id</code>、<code>text</code> 標題的 UTF-8 CSV／TSV，或 JSON。</p>
+            </div>
+            <div class="id-mapping-format" aria-label="對照表欄位說明">
+              <div><code>id</code><span>填入 NFC 手環掃描出的原始 ID，例如 <b>04A81C92</b></span></div>
+              <div><code>text</code><span>填入希望掃描畫面顯示的內容，例如 <b>王小明 · 第一隊</b></span></div>
+              <a class="button button--quiet id-mapping-example-download" href="examples/id-mapping-example.csv" download>
+                下載 CSV 範例檔 <span aria-hidden="true">↓</span>
+              </a>
+            </div>
+            <div class="id-mapping-preview">
+              <p><strong>CSV 範例預覽</strong><span>每一列代表一個選手手環</span></p>
+              <div class="id-mapping-preview__scroll">
+                <table>
+                  <thead><tr><th>id</th><th>text</th></tr></thead>
+                  <tbody>
+                    <tr><td>04A81C92</td><td>王小明 · 第一隊</td></tr>
+                    <tr><td>B3702F10</td><td>李小華 · 第二棒</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="id-mapping-upload__actions">
+              <label class="id-mapping-picker" for="id-mapping-file">
+                <span>上傳對照表</span>
+                <input id="id-mapping-file" type="file" accept=".csv,.tsv,.json,text/csv,text/tab-separated-values,application/json">
+              </label>
+              <button id="clear-id-mapping" class="button button--quiet" type="button" hidden>移除對照表</button>
+            </div>
+            <p id="id-mapping-status" class="status id-mapping-upload__status" role="status" aria-live="polite">
+              尚未選擇檔案；下載的軟體會顯示原始 ID。
+            </p>
+            <small>對照表只會在瀏覽器內加入 ZIP，不會上傳到 GitHub。掃描紀錄、匯出、雲端資料與計分仍保留原始手環 ID。</small>
+          </div>
+        </section>
+
         <section id="station-config" class="step-card step-card--peach" aria-labelledby="step-station-title">
           <div class="step-card__heading">
             <span class="step-number"><b data-download-step-number>04</b><i aria-hidden="true">↓</i></span>
@@ -332,6 +389,7 @@
           </p>
 
           <form id="station-form" novalidate>
+
             <div class="download-row">
               <button id="download-complete-package" class="button button--accent" type="submit">
                 <span data-download-button-label>下載含雲端配置的 Windows 軟體</span> <span aria-hidden="true">↓</span>
