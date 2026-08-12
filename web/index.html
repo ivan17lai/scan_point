@@ -56,18 +56,87 @@
         </div>
 
         <div class="hero__visual hero__visual--field" role="img"
-          aria-label="地圖上的五個站點與相連路線">
-          <div class="field-map" aria-hidden="true">
-            <i class="route-line route-line--1"></i>
-            <i class="route-line route-line--2"></i>
-            <i class="route-line route-line--3"></i>
-            <i class="route-line route-line--4"></i>
-            <span class="map-station map-station--1"><i></i><b>CP01</b></span>
-            <span class="map-station map-station--2"><i></i><b>CP02</b></span>
-            <span class="map-station map-station--3"><i></i><b>CP03</b></span>
-            <span class="map-station map-station--4"><i></i><b>CP04</b></span>
-            <span class="map-station map-station--5"><i></i><b>CP05</b></span>
-          </div>
+          aria-label="活動路線圖，五個掃描站 CP01 到 CP05 串成一圈">
+          <svg class="field-map" viewBox="0 0 400 440" aria-hidden="true" focusable="false">
+            <defs>
+              <path id="fm-card"
+                d="M72 28H328a52 52 0 0 1 52 52v280a52 52 0 0 1-52 52H36a16 16 0 0 1-16-16V80a52 52 0 0 1 52-52Z"/>
+              <clipPath id="fm-clip"><use href="#fm-card"/></clipPath>
+              <path id="fm-route"
+                d="M84 236C91.3 199 134.7 118.7 172 108C209.3 97.3 289 133 308 172C327 211 316 315.7 286 342C256 368.3 161.7 347.7 128 330C94.3 312.3 76.7 273 84 236Z"
+                fill="none" stroke-linecap="round"/>
+              <pattern id="fm-grid" width="26" height="26" patternUnits="userSpaceOnUse">
+                <circle cx="2" cy="2" r="1.5" fill="#65558f" fill-opacity="0.16"/>
+              </pattern>
+              <filter id="fm-lift" x="-40%" y="-40%" width="180%" height="180%">
+                <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#21005d" flood-opacity="0.24"/>
+              </filter>
+              <g id="fm-pin">
+                <path d="M0 0 12.4-23.5A14 14 0 1 0-12.4-23.5Z"
+                  fill="var(--md-sys-color-primary)" stroke="#ffffff" stroke-width="5"
+                  stroke-linejoin="round"/>
+                <circle cy="-30" r="5.5" fill="var(--step-yellow)"/>
+              </g>
+            </defs>
+
+            <rect x="20" y="28" width="360" height="384" rx="54" fill="var(--step-blue)"
+              fill-opacity="0.6" transform="rotate(-6 200 220)"/>
+
+            <use href="#fm-card" fill="#ffffff" fill-opacity="0.66"/>
+
+            <g clip-path="url(#fm-clip)">
+              <rect x="20" y="28" width="360" height="384" fill="url(#fm-grid)"/>
+              <g fill="none" stroke="#65558f" stroke-opacity="0.16" stroke-width="2">
+                <circle cx="372" cy="48" r="44"/>
+                <circle cx="372" cy="48" r="66"/>
+                <circle cx="372" cy="48" r="88"/>
+              </g>
+              <rect x="150" y="206" width="94" height="70" rx="26" fill="var(--step-yellow)"
+                fill-opacity="0.5" transform="rotate(-8 197 241)"/>
+            </g>
+
+            <use href="#fm-card" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="6"/>
+
+            <use href="#fm-route" stroke="#ffffff" stroke-opacity="0.9" stroke-width="15"/>
+            <use href="#fm-route" stroke="var(--md-sys-color-primary)" stroke-width="7"
+              stroke-dasharray="13 15"/>
+
+            <g transform="translate(78 92)">
+              <circle r="16" fill="#ffffff" fill-opacity="0.82"/>
+              <path d="M0-9.5 5 3.5 0 0.5-5 3.5Z" fill="var(--md-sys-color-primary)"/>
+            </g>
+
+            <g filter="url(#fm-lift)">
+              <use href="#fm-pin" x="84" y="236"/>
+              <use href="#fm-pin" x="172" y="108"/>
+              <use href="#fm-pin" x="308" y="172"/>
+              <use href="#fm-pin" x="286" y="342"/>
+              <use href="#fm-pin" x="128" y="330"/>
+            </g>
+
+            <g class="field-map__labels" filter="url(#fm-lift)">
+              <g transform="translate(114 256)">
+                <rect x="-23" y="-10" width="46" height="20" rx="10" fill="#ffffff"/>
+                <text x="0" y="4">CP01</text>
+              </g>
+              <g transform="translate(172 132)">
+                <rect x="-23" y="-10" width="46" height="20" rx="10" fill="#ffffff"/>
+                <text x="0" y="4">CP02</text>
+              </g>
+              <g transform="translate(340 192)">
+                <rect x="-23" y="-10" width="46" height="20" rx="10" fill="#ffffff"/>
+                <text x="0" y="4">CP03</text>
+              </g>
+              <g transform="translate(308 362)">
+                <rect x="-23" y="-10" width="46" height="20" rx="10" fill="#ffffff"/>
+                <text x="0" y="4">CP04</text>
+              </g>
+              <g transform="translate(104 352)">
+                <rect x="-23" y="-10" width="46" height="20" rx="10" fill="#ffffff"/>
+                <text x="0" y="4">CP05</text>
+              </g>
+            </g>
+          </svg>
         </div>
       </section>
 
