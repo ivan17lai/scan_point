@@ -16,6 +16,8 @@ const elements = {
   loadCloud: document.querySelector("#load-cloud"),
   fileInput: document.querySelector("#score-files"),
   dropzone: document.querySelector("#score-dropzone"),
+  sourceGrid: document.querySelector("#score-source-grid"),
+  reloadData: document.querySelector("#reload-data"),
   dataStatus: document.querySelector("#score-data-status"),
   dataUnlockHint: document.querySelector("#data-unlock-hint"),
   goToRules: document.querySelector("#go-to-rules"),
@@ -120,6 +122,8 @@ function describeLoaded(records, source, issues = []) {
   updateStepAccess();
   elements.dataUnlockHint.textContent = "第二步已解鎖";
   elements.goToRules.hidden = false;
+  elements.sourceGrid.hidden = true;
+  elements.reloadData.hidden = false;
 
   // Anything that came in but could not be used is said out loud. A silently
   // shorter result is the one failure an operator cannot notice until the
@@ -143,6 +147,26 @@ function describeLoaded(records, source, issues = []) {
     ].join(""),
     notes.length ? "warning" : "success",
   );
+}
+
+function reopenDataUpload() {
+  sourceRecords = [];
+  sourceDescription = "尚未載入";
+  dataReady = false;
+  resultReady = false;
+  scoreResult = null;
+  elements.recordCount.textContent = "0";
+  elements.stationCount.textContent = "0";
+  elements.sourceLabel.textContent = sourceDescription;
+  elements.stationOrder.value = "";
+  elements.sourceGrid.hidden = false;
+  elements.reloadData.hidden = true;
+  elements.goToRules.hidden = true;
+  elements.dataUnlockHint.textContent = "完成後解鎖下一步";
+  renderStationChips([]);
+  resetResults();
+  setStatus(elements.dataStatus, "選擇一種方式載入資料。");
+  goToStep(1);
 }
 
 function renderStationChips(stations) {
@@ -489,6 +513,7 @@ elements.stepButtons.forEach((button) => {
   });
 });
 elements.goToRules.addEventListener("click", () => goToStep(2));
+elements.reloadData.addEventListener("click", reopenDataUpload);
 elements.loadCloud.addEventListener("click", loadCloud);
 elements.keyFile.addEventListener("change", () =>
   importKeyBackup(elements.keyFile.files[0]),

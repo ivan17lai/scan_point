@@ -45,13 +45,27 @@ test("every page refreshes stale deployments and versions static assets", () => 
   }
 });
 
-test("score data sources have an explicit OR separator", () => {
+test("score data sources have a non-overlapping OR separator", () => {
   const html = fs.readFileSync(path.join(webRoot, "score.html"), "utf8");
+  const css = fs.readFileSync(path.join(webRoot, "score.css"), "utf8");
   const cloudIndex = html.indexOf("source-panel--cloud");
   const separatorIndex = html.indexOf("score-source-or");
   const localIndex = html.indexOf("source-panel--local");
   assert.ok(cloudIndex < separatorIndex && separatorIndex < localIndex);
-  assert.match(html, />OR <span>或<\/span><\/div>/);
+  assert.match(html, /aria-label="或者">OR<\/div>/);
+  assert.doesNotMatch(html, /score-source-or[^>]*>[\s\S]*或<\/div>/);
+  assert.match(css, /grid-template-columns: minmax\(0, 1fr\) auto minmax\(0, 1fr\)/);
+  assert.doesNotMatch(css.match(/\.score-source-or \{[\s\S]*?\}/)[0], /position: absolute/);
+});
+test("successful data loading can be reset for another upload", () => {
+  const html = fs.readFileSync(path.join(webRoot, "score.html"), "utf8");
+  const script = fs.readFileSync(path.join(webRoot, "score.js"), "utf8");
+  assert.match(html, /id="score-source-grid"/);
+  assert.match(html, /id="reload-data"[^>]*hidden>重新上傳<\/button>/);
+  assert.match(script, /elements\.sourceGrid\.hidden = true/);
+  assert.match(script, /elements\.reloadData\.hidden = false/);
+  assert.match(script, /function reopenDataUpload\(\)/);
+  assert.match(script, /elements\.reloadData\.addEventListener\("click", reopenDataUpload\)/);
 });
 test("every direct ID selector used by page scripts exists in its HTML", () => {
   for (const [scriptName, htmlName] of [

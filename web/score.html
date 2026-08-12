@@ -51,7 +51,7 @@
               </p>
             </div>
 
-            <div class="score-source-grid">
+            <div class="score-source-grid" id="score-source-grid">
               <article class="source-panel source-panel--cloud">
                 <div class="source-panel__heading">
                   <span class="source-icon" aria-hidden="true">☁</span>
@@ -85,7 +85,7 @@
                 </button>
               </article>
 
-              <div class="score-source-or" aria-label="或者">OR <span>或</span></div>
+              <div class="score-source-or" aria-label="或者">OR</div>
 
               <article class="source-panel source-panel--local">
                 <div class="source-panel__heading">
@@ -106,6 +106,9 @@
               <div><span>紀錄</span><strong id="loaded-record-count">0</strong></div>
               <div><span>站點</span><strong id="loaded-station-count">0</strong></div>
               <div><span>來源</span><strong id="loaded-source">尚未載入</strong></div>
+            </div>
+            <div class="loaded-summary-actions">
+              <button class="button button--quiet" id="reload-data" type="button" hidden>重新上傳</button>
             </div>
             <div class="score-panel__footer">
               <p class="status score-status" id="score-data-status" role="status">
