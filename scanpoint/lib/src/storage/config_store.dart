@@ -8,26 +8,17 @@ import '../model/station_config.dart';
 
 /// Loads and saves local station settings and remote-upload settings.
 ///
-/// Both files use the same read priority:
-///   1. Next to the executable.
-///   2. `Documents/OrienteeringSystem`.
-///   3. The app support directory.
+/// `station.json` is trusted only next to the executable. Old copies in
+/// Documents or AppData must never change the identity of a newly extracted
+/// station package.
 ///
 /// `station.json` contains only station identity and local behavior.
 /// `cloud.config` is the sole source for `SPREADSHEET_ID`, `UPLOAD_URL`, and
-/// `UPLOAD_KEY`.
+/// `UPLOAD_KEY`; it keeps the existing portable/Documents/AppData fallback.
 class ConfigStore {
-  ConfigStore._(
-    this._besideFile,
-    this._appSupportFile,
-    this._documentsFile,
-    this._cloudFiles,
-    this.loadedFrom,
-  );
+  ConfigStore._(this._besideFile, this._cloudFiles, this.loadedFrom);
 
   final File _besideFile;
-  final File _appSupportFile;
-  final File _documentsFile;
   final List<File> _cloudFiles;
 
   /// Paths the active station and cloud settings came from.
@@ -55,26 +46,8 @@ class ConfigStore {
       File('${appSupportFile.parent.path}/$_cloudFileName'),
     ];
 
-    StationConfig? config;
-    StationConfig? packagedPlaceholder;
-    String? packagedPlaceholderSource;
-    var stationSource = '預設值(尚未設定)';
-    for (final candidate in [beside, documentsFile, appSupportFile]) {
-      final parsed = await _tryReadStation(candidate);
-      if (parsed == null) continue;
-      if (parsed.needsStationSetup) {
-        packagedPlaceholder ??= parsed;
-        packagedPlaceholderSource ??= candidate.path;
-        continue;
-      }
-      config = parsed;
-      stationSource = candidate.path;
-      break;
-    }
-    if (config == null && packagedPlaceholder != null) {
-      config = packagedPlaceholder;
-      stationSource = packagedPlaceholderSource!;
-    }
+    final config = await _tryReadStation(beside);
+    final stationSource = config == null ? '預設值(尚未設定)' : beside.path;
 
     var cloudSource = '未設定';
     var cloudSettings = const <String, String>{};
@@ -93,13 +66,7 @@ class ConfigStore {
       uploadToken: cloudSettings['UPLOAD_KEY'] ?? '',
     );
     return (
-      ConfigStore._(
-        beside,
-        appSupportFile,
-        documentsFile,
-        cloudFiles,
-        '站點：$stationSource；雲端：$cloudSource',
-      ),
+      ConfigStore._(beside, cloudFiles, '站點：$stationSource；雲端：$cloudSource'),
       loaded,
     );
   }
@@ -149,11 +116,7 @@ class ConfigStore {
 
   /// Writes local settings and cloud settings to separate files.
   Future<void> save(StationConfig config) async {
-    await writeStationCopies(config, [
-      _besideFile,
-      _appSupportFile,
-      _documentsFile,
-    ]);
+    await writeStationFile(config, _besideFile);
 
     final cloudText = encodeCloudConfig(config);
     for (final file in _cloudFiles) {
@@ -167,21 +130,12 @@ class ConfigStore {
   }
 
   @visibleForTesting
-  static Future<void> writeStationCopies(
-    StationConfig config,
-    Iterable<File> files,
-  ) async {
+  static Future<void> writeStationFile(StationConfig config, File file) async {
     final stationText = const JsonEncoder.withIndent(
       '  ',
     ).convert(config.toJson());
-    for (final file in files) {
-      try {
-        await file.parent.create(recursive: true);
-        await file.writeAsString(stationText, flush: true);
-      } catch (_) {
-        // Best effort: one surviving copy is enough to restart configured.
-      }
-    }
+    await file.parent.create(recursive: true);
+    await file.writeAsString(stationText, flush: true);
   }
 
   static String _singleLine(String value) =>

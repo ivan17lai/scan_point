@@ -36,20 +36,24 @@ UPLOAD_KEY=key=value
     });
   });
 
-  test('station settings are written to every requested copy', () async {
-    final temp = await Directory.systemTemp.createTemp('scanpoint-config-');
-    addTearDown(() => temp.delete(recursive: true));
-    final beside = File('${temp.path}/portable/station.json');
-    final support = File('${temp.path}/support/station.json');
+  test(
+    'station settings are written only to the requested beside file',
+    () async {
+      final temp = await Directory.systemTemp.createTemp('scanpoint-config-');
+      addTearDown(() => temp.delete(recursive: true));
+      final beside = File('${temp.path}/portable/station.json');
+      final oldSupportCopy = File('${temp.path}/support/station.json');
+      await oldSupportCopy.parent.create(recursive: true);
+      await oldSupportCopy.writeAsString('{"station_name":"舊站點"}');
 
-    const config = StationConfig(stationId: 'CP1', stationName: '水源地');
-    await ConfigStore.writeStationCopies(config, [beside, support]);
+      const config = StationConfig(stationId: 'CP1', stationName: '水源地');
+      await ConfigStore.writeStationFile(config, beside);
 
-    for (final file in [beside, support]) {
       final json =
-          jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+          jsonDecode(await beside.readAsString()) as Map<String, dynamic>;
       expect(json['station_id'], 'CP1');
       expect(json['station_name'], '水源地');
-    }
-  });
+      expect(await oldSupportCopy.readAsString(), '{"station_name":"舊站點"}');
+    },
+  );
 }

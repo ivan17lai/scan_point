@@ -177,18 +177,21 @@ UPLOAD_URL=https://script.google.com/macros/s/你的部署ID/exec
 UPLOAD_KEY=你的上傳金鑰
 ```
 
-兩個檔案都使用相同的讀取優先序：
+`station.json` 只信任並寫入 `scan_point.exe` 同一資料夾。Documents 或 AppData 即使留有舊的
+`station.json`，程式也不會讀取，避免新解壓縮的掃描站沿用這台電腦以前的站點身分。
+
+`cloud.config` 使用以下讀取優先序：
 
 1. `scan_point.exe` 旁邊
 2. `<文件>/OrienteeringSystem/`
 3. AppData 的程式資料目錄
 
-管理台儲存時會分別更新 `station.json` 與 `cloud.config`。三個雲端欄位必須同時完整，否則遠端上傳不會啟用。
+管理台儲存時會更新 EXE 同層的 `station.json`，並更新 `cloud.config`。三個雲端欄位必須同時完整，否則遠端上傳不會啟用。
 
 完整軟體包會附帶預設的 `station.json`（`CP1`、`未命名站點`）。第一次啟動會先顯示站點設定畫面，
 要求操作員輸入站點編號與實際名稱；儲存成功前不能進入掃描畫面。此畫面會暫停原生鍵盤阻擋並恢復
-Windows IME，因此站點名稱可正常輸入中文。儲存時也會盡力更新 exe 旁的 `station.json`，避免重開後
-再次讀到完整包內的預設值；若程式資料夾唯讀，文件與 AppData 副本仍會保留設定。
+Windows IME，因此站點名稱可正常輸入中文。站點設定必須成功寫入 EXE 同層的 `station.json`；若資料夾
+唯讀，畫面會顯示儲存失敗，而不會假裝設定已保存。
 ## 上傳
 
 管理台的「上傳到雲端」會使用 `cloud.config` 的 `UPLOAD_URL`，把全部紀錄 POST 到 Apps Script：
