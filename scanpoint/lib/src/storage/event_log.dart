@@ -16,6 +16,7 @@ enum EventType {
   adminExit('admin_exit'),
   configChange('config_change'),
   storageChange('storage_change'),
+  idMappingChange('id_mapping_change'),
   exportRun('export'),
   uploadRun('upload'),
   writeError('write_error');

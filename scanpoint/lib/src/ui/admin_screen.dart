@@ -242,6 +242,44 @@ class _AdminScreenState extends State<AdminScreen> {
     });
   }
 
+  Future<void> _importIdMapping() async {
+    final chosen = await openFile(
+      acceptedTypeGroups: const [
+        XTypeGroup(label: 'ID 對照表', extensions: ['csv', 'tsv', 'json']),
+      ],
+    );
+    if (chosen == null) return;
+
+    setState(() => _busy = true);
+    try {
+      final count = await widget.controller.importIdMapping(File(chosen.path));
+      if (!mounted) return;
+      setState(() => _status = 'ID 對照表已匯入，共 $count 筆');
+    } on FormatException catch (error) {
+      if (!mounted) return;
+      setState(() => _status = '對照表格式不正確：${error.message}');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _status = '無法匯入對照表：$error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _clearIdMapping() async {
+    setState(() => _busy = true);
+    try {
+      await widget.controller.clearIdMapping();
+      if (!mounted) return;
+      setState(() => _status = '已移除 ID 對照表，刷卡時會顯示原始 ID');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _status = '無法移除對照表：$error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Widget _folderRow({
     required String label,
     required String path,
@@ -431,17 +469,20 @@ class _AdminScreenState extends State<AdminScreen> {
           separatorBuilder: (_, _) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
             final record = records[index];
+            final label = widget.controller.labelForCard(record.cardId);
             return _historyCard(
               icon: record.isDuplicate
                   ? Icons.history_rounded
                   : Icons.check_rounded,
-              title: record.cardId,
+              title: label ?? record.cardId,
               subtitle:
                   '${_formatDateTime(record.at)} · ${record.stationId} ${record.stationName}',
-              detail: '第 ${record.sequence} 筆',
+              detail: label == null
+                  ? '第 ${record.sequence} 筆'
+                  : '原始 ID：${record.cardId} · 第 ${record.sequence} 筆',
               badge: record.isDuplicate ? '重複' : '有效',
               isWarning: record.isDuplicate,
-              monospaceTitle: true,
+              monospaceTitle: label == null,
             );
           },
         ),
@@ -611,6 +652,7 @@ class _AdminScreenState extends State<AdminScreen> {
     'storage_change' => '儲存位置變更',
     'export' => '匯出紀錄',
     'upload' => '雲端上傳',
+    'id_mapping_change' => 'ID 對照表變更',
     'write_error' => '寫入錯誤',
     _ => type,
   };
@@ -628,6 +670,7 @@ class _AdminScreenState extends State<AdminScreen> {
     'storage_change' => Icons.storage_rounded,
     'export' => Icons.folder_zip_rounded,
     'upload' => Icons.cloud_upload_rounded,
+    'id_mapping_change' => Icons.badge_outlined,
     'write_error' => Icons.warning_amber_rounded,
     _ => Icons.info_outline_rounded,
   };
@@ -807,6 +850,49 @@ class _AdminScreenState extends State<AdminScreen> {
                       icon: const Icon(Icons.save_rounded),
                       label: const Text('儲存設定'),
                     ),
+                  ),
+                ]),
+                const SizedBox(height: 24),
+                _section('ID 對照表', [
+                  Text(
+                    '匯入後，刷卡成功畫面會以自訂文字取代原始 ID；掃描紀錄、匯出、上傳與計分仍保留原始 ID。支援含 id、text 標題的 UTF-8 CSV／TSV，或 JSON。',
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 13,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _kv(
+                    '已載入',
+                    c.idMappingCount == 0 ? '未設定' : '${c.idMappingCount} 筆',
+                  ),
+                  _kv('檔案位置', c.idMappingPath),
+                  if (c.idMappingWarning != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        c.idMappingWarning!,
+                        style: TextStyle(color: scheme.error),
+                      ),
+                    ),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton.tonalIcon(
+                        onPressed: _busy ? null : _importIdMapping,
+                        icon: const Icon(Icons.upload_file_rounded),
+                        label: const Text('匯入對照表'),
+                      ),
+                      if (c.idMappingCount > 0)
+                        TextButton.icon(
+                          onPressed: _busy ? null : _clearIdMapping,
+                          icon: const Icon(Icons.delete_outline_rounded),
+                          label: const Text('移除對照表'),
+                        ),
+                    ],
                   ),
                 ]),
                 const SizedBox(height: 24),
@@ -1010,6 +1096,7 @@ class _AdminScreenState extends State<AdminScreen> {
     final (icon, subtitle) = switch (title) {
       '本站概況' => (Icons.monitor_heart_rounded, '即時紀錄、匯出與雲端上傳'),
       '站點設定' => (Icons.tune_rounded, '站點識別、管理密碼與雲端上傳'),
+      'ID 對照表' => (Icons.badge_outlined, '將原始卡號換成現場可辨識的文字'),
       '儲存位置' => (Icons.storage_rounded, '固定副本與額外備份位置'),
       '離開' => (Icons.power_settings_new_rounded, '解除現場保護並關閉程式'),
       _ => (Icons.settings_rounded, ''),

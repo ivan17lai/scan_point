@@ -20,6 +20,7 @@ class KioskScreen extends StatelessWidget {
       stationName: controller.config.stationName,
       recordedCount: controller.recordedCount,
       cardId: controller.cardId,
+      cardLabel: controller.cardLabel,
       recordedAt: controller.recordedAt,
       firstSeenAt: controller.firstSeenAt,
       fault: controller.fault,

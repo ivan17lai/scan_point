@@ -119,4 +119,31 @@ void main() {
       ).writeAsBytesSync(bytes!.buffer.asUint8List());
     });
   }
+
+  testWidgets('custom label replaces the raw ID on the runner screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: KioskFace(
+          state: KioskState.success,
+          stationId: 'CP3',
+          stationName: '水源地',
+          recordedCount: 1,
+          cardId: '00000007',
+          cardLabel: '第七棒 · 王小明',
+          recordedAt: frozen,
+          clockOverride: frozen,
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 380));
+
+    expect(find.text('第七棒 · 王小明'), findsOneWidget);
+    expect(find.text('0000 0007'), findsNothing);
+  });
 }

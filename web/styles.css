@@ -2291,3 +2291,75 @@ a:focus-visible {
     padding: 18px;
   }
 }
+
+.id-mapping-upload {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: clamp(20px, 3vw, 28px);
+  color: #3f3554;
+  background: rgba(255, 255, 255, 0.58);
+  border-radius: 28px;
+}
+
+.id-mapping-upload h3 {
+  margin: 4px 0 8px;
+  color: #21182c;
+  font-size: clamp(1.25rem, 2vw, 1.55rem);
+}
+
+.id-mapping-upload p,
+.id-mapping-upload small {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.id-mapping-upload small {
+  color: #62576f;
+}
+
+.id-mapping-upload__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.id-mapping-picker {
+  position: relative;
+  display: inline-flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  overflow: hidden;
+  color: #ffffff;
+  background: #65558f;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.id-mapping-picker:hover {
+  background: #55447f;
+}
+
+.id-mapping-picker:focus-within {
+  outline: 3px solid rgba(101, 85, 143, 0.3);
+  outline-offset: 3px;
+}
+
+.id-mapping-picker input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.id-mapping-upload__status {
+  min-height: 24px;
+}
+
+@media (max-width: 560px) {
+  .id-mapping-picker,
+  .id-mapping-upload__actions .button {

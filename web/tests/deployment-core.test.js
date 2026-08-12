@@ -115,3 +115,62 @@ test("customizeStationArchive replaces stale config with packaged defaults", asy
     /第一次執行 scan_point\.exe.*管理 PIN/s,
   );
 });
+
+test("normalizeIdMapping accepts CSV and preserves display text", () => {
+  assert.deepEqual(
+    core.normalizeIdMapping(
+      '\uFEFFid,text\r\n00123,"第一組, 王小明"\r\nABC,救護組\r\n',
+      'runners.csv',
+    ),
+    {
+      format: "scanpoint-id-mapping",
+      schema_version: 1,
+      entries: [
+        {id: "00123", text: "第一組, 王小明"},
+        {id: "ABC", text: "救護組"},
+      ],
+    },
+  );
+});
+
+test("normalizeIdMapping rejects missing headers and duplicate IDs", () => {
+  assert.throws(
+    () => core.normalizeIdMapping("bib,team\nA01,A", "mapping.csv"),
+    (error) => error.message === "ID_MAPPING_HEADER_INVALID",
+  );
+  assert.throws(
+    () => core.normalizeIdMapping("id,text\nA01,A\nA01,B", "mapping.csv"),
+    (error) => error.message === "ID_MAPPING_DUPLICATE",
+  );
+});
+
+test("cloud and offline archives include only the selected canonical mapping", async () => {
+  const mapping = core.normalizeIdMapping("id,text\n0007,第七棒\n", "mapping.csv");
+  const cloudZip = new JSZip();
+  cloudZip.file("scan_point.exe", "binary-placeholder");
+  cloudZip.file("nested/id-mapping.json", "stale mapping");
+  core.customizeStationArchive(
+    cloudZip,
+    {stationId: "CP1", stationName: "未命名站點", pin: "246810", extraDir: ""},
+    {spreadsheetId, uploadUrl, uploadKey, readKey},
+    mapping,
+  );
+  const cloudBytes = await cloudZip.generateAsync({type: "nodebuffer"});
+  const cloudPackage = await JSZip.loadAsync(cloudBytes);
+  assert.equal(cloudPackage.file("nested/id-mapping.json"), null);
+  assert.deepEqual(
+    JSON.parse(await cloudPackage.file("id-mapping.json").async("string")),
+    mapping,
+  );
+
+  const offlineZip = new JSZip();
+  offlineZip.file("scan_point.exe", "binary-placeholder");
+  offlineZip.file("cloud.config", "secret");
+  offlineZip.file("upload.key", "legacy secret");
+  core.customizeOfflineArchive(offlineZip, mapping);
+  const offlineBytes = await offlineZip.generateAsync({type: "nodebuffer"});
+  const offlinePackage = await JSZip.loadAsync(offlineBytes);
+  assert.equal(offlinePackage.file("cloud.config"), null);
+  assert.equal(offlinePackage.file("upload.key"), null);
+  assert.ok(offlinePackage.file("id-mapping.json"));
+});

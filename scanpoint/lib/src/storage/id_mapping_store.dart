@@ -16,9 +16,12 @@ class IdMappingStore {
   String? labelFor(String id) => mapping.labelFor(id);
 
   static Future<IdMappingStore> open({File? overrideFile}) async {
-    final file = overrideFile ??
+    final file =
+        overrideFile ??
         File('${File(Platform.resolvedExecutable).parent.path}/$fileName');
-    if (!file.existsSync()) return IdMappingStore._(file, IdMapping.empty, null);
+    if (!file.existsSync()) {
+      return IdMappingStore._(file, IdMapping.empty, null);
+    }
     try {
       final mapping = IdMapping.parse(
         await file.readAsString(),
@@ -26,11 +29,7 @@ class IdMappingStore {
       );
       return IdMappingStore._(file, mapping, null);
     } on Object catch (error) {
-      return IdMappingStore._(
-        file,
-        IdMapping.empty,
-        '對照表無法讀取：$error',
-      );
+      return IdMappingStore._(file, IdMapping.empty, '對照表無法讀取：$error');
     }
   }
 

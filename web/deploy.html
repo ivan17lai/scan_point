@@ -332,6 +332,27 @@
           </p>
 
           <form id="station-form" novalidate>
+            <div class="id-mapping-upload">
+              <div>
+                <p class="section-kicker">選用 · ID 對照表</p>
+                <h3>讓刷卡畫面顯示自訂文字</h3>
+                <p>上傳含 <code>id</code>、<code>text</code> 標題的 UTF-8 CSV／TSV，或 JSON。未提供時仍顯示原始 ID。</p>
+              </div>
+              <div class="id-mapping-upload__actions">
+                <label class="id-mapping-picker" for="id-mapping-file">
+                  <span>上傳對照表</span>
+                  <input id="id-mapping-file" type="file" accept=".csv,.tsv,.json,text/csv,text/tab-separated-values,application/json">
+                </label>
+                <button id="clear-id-mapping" class="button button--quiet" type="button" hidden>移除對照表</button>
+              </div>
+              <p id="id-mapping-status" class="status id-mapping-upload__status" role="status" aria-live="polite">
+                尚未選擇檔案；下載的軟體會顯示原始 ID。
+              </p>
+              <small>
+                對照表只會在瀏覽器內加入 ZIP，不會上傳到 GitHub。原始掃描 ID 仍會保存在紀錄、匯出與雲端資料中。
+              </small>
+            </div>
+
             <div class="download-row">
               <button id="download-complete-package" class="button button--accent" type="submit">
                 <span data-download-button-label>下載含雲端配置的 Windows 軟體</span> <span aria-hidden="true">↓</span>

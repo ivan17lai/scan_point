@@ -29,6 +29,9 @@ const elements = {
   stationForm: document.querySelector("#station-form"),
   downloadCompletePackage: document.querySelector("#download-complete-package"),
   downloadKeyBundle: document.querySelector("#download-key-bundle"),
+  idMappingFile: document.querySelector("#id-mapping-file"),
+  clearIdMapping: document.querySelector("#clear-id-mapping"),
+  idMappingStatus: document.querySelector("#id-mapping-status"),
   formStatus: document.querySelector("#form-status"),
   deploymentModeButtons: document.querySelectorAll("[data-deployment-mode]"),
   deploymentModeHelp: document.querySelector("#deployment-mode-help"),
@@ -54,6 +57,7 @@ const keyValues = {upload: "", read: ""};
 let progressFrame = 0;
 let lastProgressIndex = -1;
 const latestWindowsPackageUrl = "downloads/scan_point-windows-x64.zip";
+let preparedIdMapping = null;
 
 function setStatus(element, message, tone = "") {
   element.textContent = message;
@@ -61,6 +65,54 @@ function setStatus(element, message, tone = "") {
     element.dataset.tone = tone;
   } else {
     delete element.dataset.tone;
+  }
+}
+
+function idMappingErrorMessage(error) {
+  const code = error instanceof Error ? error.message : "";
+  return {
+    ID_MAPPING_TOO_LARGE: "對照表不可超過 2 MB。",
+    ID_MAPPING_EMPTY: "對照表沒有任何資料。",
+    ID_MAPPING_QUOTES_INVALID: "CSV 引號沒有正確關閉。",
+    ID_MAPPING_JSON_INVALID: "JSON 格式不正確。",
+    ID_MAPPING_HEADER_INVALID: "第一列標題必須包含 id 與 text。",
+    ID_MAPPING_ENTRY_INVALID: "每一列都必須有 ID 與自訂文字。",
+    ID_MAPPING_ENTRY_TOO_LONG: "對照表內有過長的 ID 或自訂文字。",
+    ID_MAPPING_DUPLICATE: "對照表含有重複 ID。",
+    ID_MAPPING_TOO_MANY: "對照表最多可包含 10000 筆。",
+  }[code] || "無法讀取對照表，請確認檔案格式。";
+}
+
+function clearPreparedIdMapping() {
+  preparedIdMapping = null;
+  elements.idMappingFile.value = "";
+  elements.clearIdMapping.hidden = true;
+  setStatus(
+    elements.idMappingStatus,
+    "尚未選擇檔案；下載的軟體會顯示原始 ID。",
+  );
+}
+
+async function handleIdMappingFile() {
+  const [file] = elements.idMappingFile.files;
+  if (!file) {
+    clearPreparedIdMapping();
+    return;
+  }
+  try {
+    preparedIdMapping = deploymentCore.normalizeIdMapping(
+      await file.text(),
+      file.name,
+    );
+    elements.clearIdMapping.hidden = false;
+    setStatus(
+      elements.idMappingStatus,
+      `${file.name} · 已載入 ${preparedIdMapping.entries.length} 筆，會一併放入 ZIP。`,
+      "success",
+    );
+  } catch (error) {
+    clearPreparedIdMapping();
+    setStatus(elements.idMappingStatus, idMappingErrorMessage(error), "error");
   }
 }
 
@@ -502,6 +554,8 @@ function downloadCompleteKeyBundle() {
 function setStationDownloadBusy(busy) {
   elements.downloadCompletePackage.disabled = busy;
   elements.downloadKeyBundle.disabled = busy;
+  elements.idMappingFile.disabled = busy;
+  elements.clearIdMapping.disabled = busy;
 }
 
 function downloadBlob(blob, filename) {
@@ -515,7 +569,7 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-async function downloadCompleteStationPackage(stationValues, cloudValues) {
+async function downloadCompleteStationPackage(stationValues, cloudValues, idMapping) {
   if (!window.JSZip) {
     throw new Error("ZIP 元件未載入，請重新整理頁面後再試一次。");
   }
@@ -534,7 +588,7 @@ async function downloadCompleteStationPackage(stationValues, cloudValues) {
 
     setStatus(elements.formStatus, "已取得最新版，正在加入這台站點的設定與金鑰…");
     const zip = await window.JSZip.loadAsync(await response.arrayBuffer());
-    deploymentCore.customizeStationArchive(zip, stationValues, cloudValues);
+    deploymentCore.customizeStationArchive(zip, stationValues, cloudValues, idMapping);
 
     const packageBlob = await zip.generateAsync(
       {
@@ -561,7 +615,11 @@ async function downloadCompleteStationPackage(stationValues, cloudValues) {
 }
 
 
-async function downloadOfflinePackage() {
+async function downloadOfflinePackage(idMapping) {
+  if (!window.JSZip) {
+    throw new Error("ZIP 元件未載入，請重新整理頁面後再試一次。");
+  }
+
   setStationDownloadBusy(true);
   setStatus(elements.formStatus, "正在取得最新的乾淨離線版軟體，請稍候…");
   try {
@@ -573,20 +631,44 @@ async function downloadOfflinePackage() {
           : `無法下載最新 Windows 軟體（HTTP ${response.status}）。`,
       );
     }
-    downloadBlob(await response.blob(), "scan_point-windows-x64-offline.zip");
-    setStatus(elements.formStatus, "乾淨離線版已下載；不含 cloud.config、試算表 ID 或金鑰。", "success");
+
+    const zip = await window.JSZip.loadAsync(await response.arrayBuffer());
+    deploymentCore.customizeOfflineArchive(zip, idMapping);
+    const packageBlob = await zip.generateAsync(
+      {
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: {level: 6},
+      },
+      (metadata) => {
+        setStatus(
+          elements.formStatus,
+          `正在產生離線安裝包… ${Math.round(metadata.percent)}%`,
+        );
+      },
+    );
+    downloadBlob(packageBlob, "scan_point-windows-x64-offline.zip");
+    setStatus(
+      elements.formStatus,
+      idMapping
+        ? `乾淨離線版已下載，並包含 ${idMapping.entries.length} 筆 ID 對照。`
+        : "乾淨離線版已下載；不含 cloud.config、試算表 ID、金鑰或對照表。",
+      "success",
+    );
   } finally {
     setStationDownloadBusy(false);
   }
 }
 
 elements.downloadKeyBundle.addEventListener("click", downloadCompleteKeyBundle);
+elements.idMappingFile.addEventListener("change", handleIdMappingFile);
+elements.clearIdMapping.addEventListener("click", clearPreparedIdMapping);
 
 elements.stationForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (deploymentMode === "offline") {
     try {
-      await downloadOfflinePackage();
+      await downloadOfflinePackage(preparedIdMapping);
     } catch (error) {
       setStatus(elements.formStatus, error instanceof Error ? error.message : "離線版下載失敗，請稍後再試。", "error");
     }
@@ -595,7 +677,7 @@ elements.stationForm.addEventListener("submit", async (event) => {
   const cloudValues = readCloudConfigValues();
   if (!cloudValues) return;
   try {
-    await downloadCompleteStationPackage(defaultStationConfig, cloudValues);
+    await downloadCompleteStationPackage(defaultStationConfig, cloudValues, preparedIdMapping);
   } catch (error) {
     setStatus(
       elements.formStatus,

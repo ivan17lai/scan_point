@@ -91,6 +91,7 @@ class KioskFace extends StatefulWidget {
     required this.stationName,
     required this.recordedCount,
     this.cardId,
+    this.cardLabel,
     this.recordedAt,
     this.firstSeenAt,
     this.fault,
@@ -103,6 +104,7 @@ class KioskFace extends StatefulWidget {
   final String stationName;
   final int recordedCount;
   final String? cardId;
+  final String? cardLabel;
   final DateTime? recordedAt;
   final DateTime? firstSeenAt;
   final ScanFault? fault;
@@ -294,14 +296,20 @@ class _StateContent extends StatelessWidget {
 
       case KioskState.success:
         return [
-          _cardChip(face.cardId ?? ''),
+          _cardChip(
+            face.cardLabel ?? face.cardId ?? '',
+            custom: face.cardLabel != null,
+          ),
           if (face.recordedAt != null)
             _caption(_KioskFaceState._clockText(face.recordedAt!)),
         ];
 
       case KioskState.duplicate:
         return [
-          _cardChip(face.cardId ?? ''),
+          _cardChip(
+            face.cardLabel ?? face.cardId ?? '',
+            custom: face.cardLabel != null,
+          ),
           _caption(
             face.firstSeenAt == null
                 ? '這張卡在本站已經有紀錄'
@@ -321,7 +329,7 @@ class _StateContent extends StatelessWidget {
   /// With no name list loaded, the card number is the only thing a runner can
   /// verify for themselves, so it gets its own container and the largest type
   /// on the screen — grouped in fours the way it is printed on the card.
-  Widget _cardChip(String value) => Padding(
+  Widget _cardChip(String value, {required bool custom}) => Padding(
     padding: EdgeInsets.only(top: unit * 3),
     child: Container(
       padding: EdgeInsets.symmetric(horizontal: unit * 5, vertical: unit * 2.4),
@@ -334,14 +342,14 @@ class _StateContent extends StatelessWidget {
       child: FittedBox(
         fit: BoxFit.scaleDown,
         child: Text(
-          _group(value),
+          custom ? value : _group(value),
           style: TextStyle(
             color: palette.onContainer,
             fontSize: unit * 14,
             height: 1,
             fontWeight: FontWeight.w700,
-            fontFamily: 'monospace',
-            letterSpacing: unit * 0.4,
+            fontFamily: custom ? null : 'monospace',
+            letterSpacing: custom ? 0 : unit * 0.4,
           ),
         ),
       ),

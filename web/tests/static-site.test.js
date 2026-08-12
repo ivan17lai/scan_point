@@ -44,3 +44,25 @@ test("every direct ID selector used by page scripts exists in its HTML", () => {
     }
   }
 });
+
+test("deployment mapping controls stay in their intended scopes", () => {
+  const script = fs.readFileSync(path.join(webRoot, "app.js"), "utf8");
+  const busyStart = script.indexOf("function setStationDownloadBusy(busy)");
+  const busyEnd = script.indexOf("function downloadBlob", busyStart);
+  const busyFunction = script.slice(busyStart, busyEnd);
+  assert.match(busyFunction, /idMappingFile\.disabled = busy/);
+  assert.match(busyFunction, /clearIdMapping\.disabled = busy/);
+
+  const offlineStart = script.indexOf("async function downloadOfflinePackage");
+  const listenerStart = script.indexOf(
+    'elements.idMappingFile.addEventListener("change"',
+  );
+  const keyListenerStart = script.indexOf(
+    'elements.downloadKeyBundle.addEventListener("click"',
+  );
+  const submitStart = script.indexOf(
+    'elements.stationForm.addEventListener("submit"',
+  );
+  assert.ok(listenerStart > keyListenerStart, "mapping listener must be registered globally");
+  assert.ok(listenerStart < submitStart, "mapping listener must be registered globally");
+});

@@ -44,7 +44,8 @@ class IdMapping {
     ],
   };
 
-  String encode() => '${const JsonEncoder.withIndent('  ').convert(toJson())}\n';
+  String encode() =>
+      '${const JsonEncoder.withIndent('  ').convert(toJson())}\n';
 
   static List<(Object?, Object?)> _parseJson(String text) {
     final decoded = jsonDecode(text);
@@ -144,7 +145,9 @@ class IdMapping {
       } else if (!quoted && char == delimiter) {
         finishCell();
       } else if (!quoted && (char == '\n' || char == '\r')) {
-        if (char == '\r' && index + 1 < text.length && text[index + 1] == '\n') {
+        if (char == '\r' &&
+            index + 1 < text.length &&
+            text[index + 1] == '\n') {
           index++;
         }
         finishRow();
