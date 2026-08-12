@@ -4,14 +4,17 @@ Zero-dependency project overview and deployment helper for GitHub Pages.
 
 It introduces the offline station workflow and three-module architecture, then provides:
 
-- one-click copy and download of `google_apps_script/Code.gs`;
-- local, cryptographically secure `UPLOAD_KEY` generation;
+- local, cryptographically secure `UPLOAD_KEY` and `READ_KEY` generation;
 - extraction of `SPREADSHEET_ID` from a Google Sheets URL;
-- download of a ScanPoint-compatible `station.json`;
-- browser-only score calculation from Apps Script, CSV, JSON, or JSONL.
+- two deployment modes: embed values in `Code.gs` or configure Apps Script properties;
+- one-click copy and download of the mode-specific `Code.gs`;
+- download of a local `UPLOAD_KEY` / `READ_KEY` backup file;
+- browser-side assembly of the latest Windows package with local `station.json` and remote-upload `cloud.config`;
+- browser-only score calculation from Apps Script, CSV, JSON, or JSONL;
+- local key-backup import to fill the Score Center `READ_KEY`.
 
-No form value is sent to a server or stored by the page. GitHub Pages serves
-only the files in this directory through `.github/workflows/pages.yml`.
+Station values and `cloud.config` credentials are added to the ZIP locally in the browser; they are not sent to GitHub or stored by the page. GitHub Pages serves
+the static files plus the latest successful Windows build through `.github/workflows/pages.yml`.
 
 ## Local preview
 
@@ -30,4 +33,4 @@ Then open `http://localhost:8080`.
 1. Push the repository to GitHub.
 2. Open **Settings > Pages**.
 3. Set **Source** to **GitHub Actions**.
-4. Push to `main` or run the `GitHub Pages` workflow manually.
+4. Push to `main`; after the Windows workflow succeeds, the Pages workflow deploys the matching Windows ZIP automatically.

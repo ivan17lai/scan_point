@@ -1,11 +1,9 @@
 name: GitHub Pages
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "web/**"
-      - ".github/workflows/pages.yml"
+  workflow_run:
+    workflows: [Windows]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -19,13 +17,29 @@ concurrency:
 
 jobs:
   deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main')
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout the successful Windows build revision
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || 'main' }}
+
+      - name: Add the latest Windows package to the static site
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p web/downloads
+          gh release download windows-latest \
+            --pattern scan_point-windows-x64.zip \
+            --dir web/downloads \
+            --clobber
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

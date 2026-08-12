@@ -10,6 +10,8 @@ const elements = {
   stepLabel: document.querySelector("#score-step-label"),
   cloudUrl: document.querySelector("#score-cloud-url"),
   readKey: document.querySelector("#score-read-key"),
+  keyFile: document.querySelector("#score-key-file"),
+  keyFileStatus: document.querySelector("#score-key-file-status"),
   loadCloud: document.querySelector("#load-cloud"),
   fileInput: document.querySelector("#score-files"),
   dropzone: document.querySelector("#score-dropzone"),
@@ -191,6 +193,25 @@ async function loadFiles(files) {
   } finally {
     elements.fileInput.disabled = false;
     elements.fileInput.value = "";
+  }
+}
+
+async function importKeyBackup(file) {
+  if (!file) return;
+  try {
+    const payload = JSON.parse(await file.text());
+    const readKey = payload.READ_KEY || payload.read_key || payload.readKey;
+    if (typeof readKey !== "string" || !readKey.trim()) {
+      throw new Error("檔案中找不到 READ_KEY");
+    }
+    elements.readKey.value = readKey.trim();
+    elements.keyFileStatus.textContent = `已從 ${file.name} 帶入 READ_KEY`;
+    elements.keyFileStatus.dataset.tone = "success";
+  } catch (error) {
+    elements.keyFileStatus.textContent = `金鑰檔讀取失敗：${error.message}`;
+    elements.keyFileStatus.dataset.tone = "error";
+  } finally {
+    elements.keyFile.value = "";
   }
 }
 
@@ -451,6 +472,9 @@ elements.stepButtons.forEach((button) => {
 });
 elements.goToRules.addEventListener("click", () => goToStep(2));
 elements.loadCloud.addEventListener("click", loadCloud);
+elements.keyFile.addEventListener("change", () =>
+  importKeyBackup(elements.keyFile.files[0]),
+);
 elements.fileInput.addEventListener("change", () =>
   loadFiles(elements.fileInput.files),
 );

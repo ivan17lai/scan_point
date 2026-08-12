@@ -59,7 +59,8 @@ void main() {
       detail: {
         'station_name': '水源地',
         'pin': '135790',
-        'upload_token': 'super-secret',
+        'upload_token': 'legacy-secret',
+        'UPLOAD_KEY': 'cloud-secret',
       },
     );
 
@@ -69,15 +70,17 @@ void main() {
     ).readAsStringSync();
     expect(raw, contains('水源地'), reason: '非機密的變更要看得見');
     expect(raw, isNot(contains('135790')));
-    expect(raw, isNot(contains('super-secret')));
+    expect(raw, isNot(contains('legacy-secret')));
+    expect(raw, isNot(contains('cloud-secret')));
     expect(csvRaw, contains('水源地'));
     expect(csvRaw, isNot(contains('135790')));
-    expect(csvRaw, isNot(contains('super-secret')));
+    expect(csvRaw, isNot(contains('legacy-secret')));
+    expect(csvRaw, isNot(contains('cloud-secret')));
 
     final detail = read(app).single['detail'] as Map<String, dynamic>;
     expect(
       detail.keys,
-      containsAll(['pin', 'upload_token']),
+      containsAll(['pin', 'upload_token', 'UPLOAD_KEY']),
       reason: '欄位被改過這件事本身要留下',
     );
   });

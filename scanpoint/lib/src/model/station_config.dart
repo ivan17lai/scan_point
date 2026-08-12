@@ -1,13 +1,13 @@
-/// Station identity and operator settings.
+/// Station identity, operator settings, and loaded cloud settings.
 ///
-/// Can be dropped next to the executable before the event (`station.json`) so a
-/// machine arrives on site already configured, and can be edited on site from
-/// the admin panel.
+/// Local station values can be dropped next to the executable in
+/// `station.json`. Remote-upload values are loaded only from `cloud.config`.
 class StationConfig {
   const StationConfig({
     this.stationId = 'CP1',
     this.stationName = '未命名站點',
     this.pin = defaultPin,
+    this.spreadsheetId = '',
     this.uploadUrl = '',
     this.uploadToken = '',
     this.extraDir = '',
@@ -29,6 +29,11 @@ class StationConfig {
 
   bool get isPinDefault => pin == defaultPin;
 
+  /// The complete package ships with these two placeholder values. Seeing the
+  /// pair together means the operator has not yet identified this station.
+  bool get needsStationSetup =>
+      stationId.trim() == 'CP1' && stationName.trim() == '未命名站點';
+
   final String stationId;
   final String stationName;
 
@@ -36,16 +41,25 @@ class StationConfig {
   /// here would be impossible to type at the PIN screen.
   final String pin;
 
-  /// Manual upload target. Empty means the admin panel offers export only.
+  /// Google spreadsheet identity stored in `cloud.config`.
+  final String spreadsheetId;
+
+  /// Apps Script `/exec` endpoint stored in `cloud.config`.
   final String uploadUrl;
 
-  /// Sent as `Authorization: Bearer <token>` when non-empty.
+  /// Sent as `Authorization: Bearer <token>`. Stored only in `cloud.config`.
   final String uploadToken;
+
+  bool get hasCompleteCloudConfig =>
+      spreadsheetId.trim().isNotEmpty &&
+      uploadUrl.trim().isNotEmpty &&
+      uploadToken.trim().isNotEmpty;
 
   StationConfig copyWith({
     String? stationId,
     String? stationName,
     String? pin,
+    String? spreadsheetId,
     String? uploadUrl,
     String? uploadToken,
     String? extraDir,
@@ -53,18 +67,25 @@ class StationConfig {
     stationId: stationId ?? this.stationId,
     stationName: stationName ?? this.stationName,
     pin: pin ?? this.pin,
+    spreadsheetId: spreadsheetId ?? this.spreadsheetId,
     uploadUrl: uploadUrl ?? this.uploadUrl,
     uploadToken: uploadToken ?? this.uploadToken,
     extraDir: extraDir ?? this.extraDir,
   );
 
+  /// Values allowed in `station.json`. No remote-upload setting belongs here.
   Map<String, dynamic> toJson() => <String, dynamic>{
     'station_id': stationId,
     'station_name': stationName,
     'pin': pin,
-    'upload_url': uploadUrl,
-    'upload_token': uploadToken,
     'extra_dir': extraDir,
+  };
+
+  /// Values written to `cloud.config` and used to audit config changes.
+  Map<String, String> get cloudSettings => <String, String>{
+    'SPREADSHEET_ID': spreadsheetId,
+    'UPLOAD_URL': uploadUrl,
+    'UPLOAD_KEY': uploadToken,
   };
 
   static StationConfig fromJson(Map<String, dynamic> json) {
@@ -80,8 +101,10 @@ class StationConfig {
           ? (json['station_name'] as String).trim()
           : '未命名站點',
       pin: rawPin.length >= 4 ? rawPin : defaultPin,
-      uploadUrl: json['upload_url'] as String? ?? '',
-      uploadToken: json['upload_token'] as String? ?? '',
+      // Remote-upload values deliberately never come from station.json.
+      spreadsheetId: '',
+      uploadUrl: '',
+      uploadToken: '',
       // `mirror_dir` was the key in the first draft, when the chosen folder
       // replaced the mirror instead of adding to it.
       extraDir:

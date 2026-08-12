@@ -153,6 +153,50 @@
   margin-top: auto;
 }
 
+.score-key-import {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.score-key-import label {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  padding: 0 16px;
+  color: var(--md-sys-color-primary);
+  background: var(--md-sys-color-secondary-container);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.score-key-import label:hover {
+  border-radius: 14px;
+}
+
+.score-key-import input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.score-key-import span {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.score-key-import span[data-tone="success"] {
+  color: var(--md-sys-color-success);
+}
+
+.score-key-import span[data-tone="error"] {
+  color: var(--md-sys-color-error);
+}
 .score-dropzone {
   position: relative;
   display: grid;

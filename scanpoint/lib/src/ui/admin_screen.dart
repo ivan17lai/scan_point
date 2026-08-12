@@ -28,6 +28,7 @@ class _AdminScreenState extends State<AdminScreen> {
   late final TextEditingController _stationId;
   late final TextEditingController _stationName;
   late final TextEditingController _pin;
+  late final TextEditingController _spreadsheetId;
   late final TextEditingController _uploadUrl;
   late final TextEditingController _uploadToken;
 
@@ -45,6 +46,7 @@ class _AdminScreenState extends State<AdminScreen> {
     _stationId = TextEditingController(text: config.stationId);
     _stationName = TextEditingController(text: config.stationName);
     _pin = TextEditingController(text: config.pin);
+    _spreadsheetId = TextEditingController(text: config.spreadsheetId);
     _uploadUrl = TextEditingController(text: config.uploadUrl);
     _uploadToken = TextEditingController(text: config.uploadToken);
   }
@@ -55,6 +57,7 @@ class _AdminScreenState extends State<AdminScreen> {
       _stationId,
       _stationName,
       _pin,
+      _spreadsheetId,
       _uploadUrl,
       _uploadToken,
     ]) {
@@ -69,6 +72,30 @@ class _AdminScreenState extends State<AdminScreen> {
       setState(() => _status = 'PIN 至少要 4 位數字');
       return;
     }
+    final spreadsheetId = _spreadsheetId.text.trim();
+    final uploadUrl = _uploadUrl.text.trim();
+    final uploadToken = _uploadToken.text.trim();
+    final hasAnyCloudValue =
+        spreadsheetId.isNotEmpty ||
+        uploadUrl.isNotEmpty ||
+        uploadToken.isNotEmpty;
+    if (hasAnyCloudValue &&
+        (spreadsheetId.isEmpty || uploadUrl.isEmpty || uploadToken.isEmpty)) {
+      setState(() => _status = '雲端設定必須同時填寫試算表 ID、正式網址與上傳金鑰');
+      return;
+    }
+    if (spreadsheetId.isNotEmpty &&
+        !RegExp(r'^[a-zA-Z0-9_-]{20,}$').hasMatch(spreadsheetId)) {
+      setState(() => _status = 'Google 試算表 ID 格式不正確');
+      return;
+    }
+    if (uploadUrl.isNotEmpty &&
+        !RegExp(
+          r'^https://script\.google\.com/macros/s/[^/]+/exec$',
+        ).hasMatch(uploadUrl)) {
+      setState(() => _status = '請填入以 /exec 結尾的 Apps Script 正式網址');
+      return;
+    }
     final current = widget.controller.config;
     await widget.controller.updateConfig(
       current.copyWith(
@@ -79,8 +106,9 @@ class _AdminScreenState extends State<AdminScreen> {
             ? '未命名站點'
             : _stationName.text.trim(),
         pin: pin,
-        uploadUrl: _uploadUrl.text.trim(),
-        uploadToken: _uploadToken.text.trim(),
+        spreadsheetId: spreadsheetId,
+        uploadUrl: uploadUrl,
+        uploadToken: uploadToken,
       ),
     );
     setState(() => _status = '設定已儲存');
@@ -118,11 +146,12 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Future<void> _upload() async {
-    final url = widget.controller.config.uploadUrl.trim();
-    if (url.isEmpty) {
-      setState(() => _status = '尚未設定上傳網址,請先填寫或改用匯出');
+    final cloudConfig = widget.controller.config;
+    if (!cloudConfig.hasCompleteCloudConfig) {
+      setState(() => _status = 'cloud.config 不完整，請確認試算表 ID、正式網址與上傳金鑰');
       return;
     }
+    final url = cloudConfig.uploadUrl.trim();
     setState(() {
       _busy = true;
       _status = '上傳中…';
@@ -140,6 +169,7 @@ class _AdminScreenState extends State<AdminScreen> {
               payload: {
                 'schema_version': 1,
                 'api_key': token,
+                'spreadsheet_id': cloudConfig.spreadsheetId.trim(),
                 'batch_id':
                     '${widget.controller.config.stationId}-'
                     '${now.toUtc().microsecondsSinceEpoch}',
@@ -741,8 +771,13 @@ class _AdminScreenState extends State<AdminScreen> {
                   _field('站點編號', _stationId, hint: 'CP3'),
                   _field('站點名稱', _stationName, hint: '水源地'),
                   _field('管理 PIN(僅數字)', _pin),
-                  _field('雲端上傳網址(可留空)', _uploadUrl, hint: 'https://…'),
-                  _field('上傳權杖(可留空)', _uploadToken),
+                  _field('Google 試算表 ID', _spreadsheetId),
+                  _field(
+                    'Apps Script 正式網址',
+                    _uploadUrl,
+                    hint: 'https://…/exec',
+                  ),
+                  _field('雲端上傳金鑰', _uploadToken),
                   const SizedBox(height: 4),
                   SizedBox(
                     width: double.infinity,
@@ -1076,8 +1111,9 @@ class _AdminScreenState extends State<AdminScreen> {
       '站點編號' => Icons.tag_rounded,
       '站點名稱' => Icons.place_rounded,
       '管理 PIN(僅數字)' => Icons.lock_rounded,
-      '雲端上傳網址(可留空)' => Icons.link_rounded,
-      '上傳權杖(可留空)' => Icons.key_rounded,
+      'Google 試算表 ID' => Icons.table_chart_rounded,
+      'Apps Script 正式網址' => Icons.link_rounded,
+      '雲端上傳金鑰' => Icons.key_rounded,
       _ => Icons.edit_rounded,
     };
     return Padding(

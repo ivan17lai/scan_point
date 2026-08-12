@@ -1,3 +1,9 @@
+const SCANPOINT_CONFIG = Object.freeze({
+  spreadsheetId: '__SCANPOINT_SPREADSHEET_ID__',
+  uploadKey: '__SCANPOINT_UPLOAD_KEY__',
+  readKey: '__SCANPOINT_READ_KEY__',
+});
+
 const SCAN_HEADERS = [
   'record_id', 'station_id', 'station_name', 'sequence', 'card_id',
   'at_local', 'at_utc', 'duplicate_of', 'terminator', 'received_at',
@@ -40,15 +46,14 @@ function doGet(e) {
 }
 
 function readScores(e) {
-  const properties = PropertiesService.getScriptProperties();
-  const spreadsheetId = properties.getProperty('SPREADSHEET_ID');
-  const expectedReadKey = properties.getProperty('READ_KEY');
+  const spreadsheetId = configValue('spreadsheetId');
+  const expectedReadKey = configValue('readKey');
   const actualReadKey = e && e.parameter && e.parameter.read_key;
 
   if (!spreadsheetId || !expectedReadKey) {
     return scoreResponse(e, {
       ok: false,
-      error: 'Score reading properties are not configured',
+      error: 'Code.gs or Script Properties score configuration is incomplete',
     });
   }
   if (!safeEqual(actualReadKey, expectedReadKey)) {
@@ -106,14 +111,13 @@ function scoreResponse(e, value) {
 
 function doPost(e) {
   try {
-    const properties = PropertiesService.getScriptProperties();
-    const spreadsheetId = properties.getProperty('SPREADSHEET_ID');
-    const expectedKey = properties.getProperty('UPLOAD_KEY');
+    const spreadsheetId = configValue('spreadsheetId');
+    const expectedKey = configValue('uploadKey');
 
     if (!spreadsheetId || !expectedKey) {
       return jsonResponse({
         ok: false,
-        error: 'Apps Script properties are not configured',
+        error: 'Code.gs or Script Properties configuration is incomplete',
       });
     }
 
@@ -123,6 +127,9 @@ function doPost(e) {
     }
     if (!safeEqual(body.api_key, expectedKey)) {
       return jsonResponse({ok: false, error: 'Unauthorized'});
+    }
+    if (!safeEqual(body.spreadsheet_id, spreadsheetId)) {
+      return jsonResponse({ok: false, error: 'Spreadsheet ID mismatch'});
     }
 
     const scans = Array.isArray(body.scans) ? body.scans : [];
@@ -323,6 +330,17 @@ function safeEqual(actual, expected) {
     difference |= left[i] ^ right[i];
   }
   return difference === 0;
+}
+
+function configValue(name) {
+  const value = String(SCANPOINT_CONFIG[name] || '');
+  if (value && !/^__SCANPOINT_[A-Z_]+__$/.test(value)) return value;
+  const propertyNames = {
+    spreadsheetId: 'SPREADSHEET_ID',
+    uploadKey: 'UPLOAD_KEY',
+    readKey: 'READ_KEY',
+  };
+  return PropertiesService.getScriptProperties().getProperty(propertyNames[name]) || '';
 }
 
 function cleanText(value) {

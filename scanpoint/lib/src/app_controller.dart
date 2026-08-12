@@ -17,7 +17,7 @@ import 'storage/scan_store.dart';
 enum KioskState { idle, scanning, success, duplicate, error }
 
 /// Which surface owns the keyboard.
-enum AppMode { kiosk, pinEntry, admin }
+enum AppMode { setup, kiosk, pinEntry, admin }
 
 class KioskTiming {
   const KioskTiming();
@@ -60,7 +60,9 @@ class AppController extends ChangeNotifier {
   StationConfig _config;
   StationConfig get config => _config;
 
-  AppMode _mode = AppMode.kiosk;
+  late AppMode _mode = _config.needsStationSetup
+      ? AppMode.setup
+      : AppMode.kiosk;
   AppMode get mode => _mode;
 
   KioskState _state = KioskState.idle;
@@ -264,6 +266,32 @@ class AppController extends ChangeNotifier {
 
   // --- mode ----------------------------------------------------------------
 
+  /// Called after the kiosk lock has engaged during startup. Text entry needs
+  /// the same native keyboard/IME relaxation as the administrator screen.
+  Future<void> prepareInitialMode() async {
+    if (_mode == AppMode.setup) {
+      await KioskLock.suspendKeyboardBlocking();
+    }
+  }
+
+  Future<void> completeStationSetup({
+    required String stationId,
+    required String stationName,
+  }) async {
+    if (_mode != AppMode.setup) return;
+    await updateConfig(
+      _config.copyWith(
+        stationId: stationId.trim(),
+        stationName: stationName.trim(),
+      ),
+    );
+    _mode = AppMode.kiosk;
+    _state = KioskState.idle;
+    _decoder.cancel();
+    await KioskLock.resumeKeyboardBlocking();
+    notifyListeners();
+  }
+
   void requestAdmin() {
     if (_mode != AppMode.kiosk) return;
     _decoder.cancel();
@@ -310,8 +338,14 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> updateConfig(StationConfig config) async {
-    final before = _config.toJson();
-    final after = config.toJson();
+    final before = <String, Object?>{
+      ..._config.toJson(),
+      ..._config.cloudSettings,
+    };
+    final after = <String, Object?>{
+      ...config.toJson(),
+      ...config.cloudSettings,
+    };
     final changed = <String, Object?>{
       for (final key in after.keys)
         if (before[key] != after[key]) key: after[key],

@@ -8,6 +8,7 @@ import 'src/platform/kiosk_lock.dart';
 import 'src/ui/admin_screen.dart';
 import 'src/ui/kiosk_screen.dart';
 import 'src/ui/pin_screen.dart';
+import 'src/ui/setup_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +42,7 @@ Future<void> main() async {
   }
 
   await KioskLock.engage();
+  await controller.prepareInitialMode();
   runApp(StationApp(controller: controller));
 }
 
@@ -178,6 +180,7 @@ class _StationAppState extends State<StationApp> with WindowListener {
         animation: widget.controller,
         builder: (context, _) {
           return switch (widget.controller.mode) {
+            AppMode.setup => SetupScreen(controller: widget.controller),
             AppMode.kiosk => KioskScreen(controller: widget.controller),
             AppMode.pinEntry => PinScreen(controller: widget.controller),
             AppMode.admin => AdminScreen(controller: widget.controller),

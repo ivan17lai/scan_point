@@ -39,20 +39,20 @@
               <a href="#deploy-overview" data-progress-section="deploy-overview" aria-current="step">
                 <span>01</span><strong>部署前準備</strong>
               </a>
-              <a href="#apps-script" data-progress-section="apps-script">
-                <span>02</span><strong>複製 Apps Script</strong>
-              </a>
               <a href="#cloud-settings" data-progress-section="cloud-settings">
-                <span>03</span><strong>設定試算表與金鑰</strong>
+                <span>02</span><strong>貼上試算表連結</strong>
+              </a>
+              <a href="#apps-script" data-progress-section="apps-script">
+                <span>03</span><strong>加入雲端接收程式</strong>
               </a>
               <a href="#web-app-deploy" data-progress-section="web-app-deploy">
-                <span>04</span><strong>部署網頁應用程式</strong>
+                <span>04</span><strong>取得正式部署網址</strong>
               </a>
               <a href="#station-config" data-progress-section="station-config">
-                <span>05</span><strong>下載站點設定</strong>
+                <span>05</span><strong>下載完整掃描站</strong>
               </a>
               <a href="#deploy-finish" data-progress-section="deploy-finish">
-                <span>06</span><strong>完成現場部署</strong>
+                <span>06</span><strong>解壓縮並確認</strong>
               </a>
             </nav>
             <div class="page-progress__footer">
@@ -68,98 +68,101 @@
           <div class="step-card__heading">
             <span class="step-number"><b>01</b><i aria-hidden="true">✓</i></span>
             <div>
-              <p class="section-kicker">Before you begin</p>
-              <h2 id="deploy-overview-title">部署前先準備好三樣東西</h2>
+              <p class="section-kicker">開始前準備</p>
+              <h2 id="deploy-overview-title">部署前先準備好兩樣東西</h2>
             </div>
           </div>
           <div class="deploy-overview__grid">
             <div class="deploy-overview__copy">
               <p class="eyebrow">SCANPOINT DEPLOYMENT GUIDE</p>
-              <h3>從空白試算表，<br>到可以上傳的掃描站。</h3>
+              <h3>從一份空白試算表，<br>到可以接收資料的掃描站。</h3>
               <p>
-                接下來依序完成六個步驟。頁面會準備程式碼、產生金鑰與設定檔，
-                並明確標示 Google Apps Script 的每個部署選項。
+                接下來依序完成六個步驟。本頁會產生金鑰、準備完整雲端接收程式，
+                最後直接下載已包含站點設定與上傳金鑰的最新 Windows 軟體。
               </p>
               <a class="back-link" href="index.html"><span aria-hidden="true">←</span> 回到專案首頁</a>
             </div>
             <div class="deploy-overview__prep" aria-label="開始前準備">
               <ol>
-                <li><i>1</i><span>一份空白的 Google 試算表</span></li>
-                <li><i>2</i><span>可以編輯試算表的 Google 帳號</span></li>
-                <li><i>3</i><span>要部署的 Windows 掃描站資料</span></li>
+                <li><i>1</i><span>在 Google Drive 新增一份空白試算表，並保持開啟</span></li>
+                <li><i>2</i><span>確認目前登入的 Google 帳號可以編輯這份試算表</span></li>
               </ol>
-              <p>準備完成後再往下進行；敏感資料只在你的瀏覽器內處理。</p>
+              <p>不需要先建立欄位或工作表；本頁產生的設定只會在你的瀏覽器內處理。</p>
             </div>
           </div>
         </section>
-        <section id="apps-script" class="step-card step-card--violet" aria-labelledby="step-code-title">
+        <section id="cloud-settings" class="step-card step-card--blue" aria-labelledby="step-cloud-title">
           <div class="step-card__heading">
-            <span class="step-number"><b>02</b><i aria-hidden="true">{ }</i></span>
+            <span class="step-number"><b>02</b><i aria-hidden="true">✦</i></span>
             <div>
-              <p class="section-kicker">Google Apps Script</p>
-              <h2 id="step-code-title">複製雲端接收程式</h2>
+              <p class="section-kicker">連結試算表</p>
+              <h2 id="step-cloud-title">貼上你剛建立的空白試算表連結</h2>
             </div>
           </div>
           <p class="section-copy">
-            在試算表開啟「擴充功能 → Apps Script」，清空原本的
-            <code>Code.gs</code>，再貼上以下完整內容。
+            回到第 1 步建立的空白試算表，複製瀏覽器網址列中的完整網址，
+            再貼到下方輸入框。頁面會自動辨識試算表 ID，你不需要自己截取網址。
           </p>
-          <div class="action-row">
-            <button class="button button--primary" id="copy-code" type="button" disabled>
-              複製 Code.gs
-            </button>
-            <a class="button button--quiet" href="google_apps_script/Code.gs" download>
-              下載 Code.gs
-            </a>
-            <span class="status" id="code-status" role="status">正在載入程式碼…</span>
-          </div>
-          <details class="code-panel">
-            <summary>預覽程式碼 <span aria-hidden="true">⌄</span></summary>
-            <pre><code id="code-preview"></code></pre>
-          </details>
-        </section>
 
-        <section id="cloud-settings" class="step-card step-card--blue" aria-labelledby="step-cloud-title">
-          <div class="step-card__heading">
-            <span class="step-number"><b>03</b><i aria-hidden="true">✦</i></span>
-            <div>
-              <p class="section-kicker">Script Properties</p>
-              <h2 id="step-cloud-title">準備試算表 ID 與金鑰</h2>
-            </div>
+          <div class="endpoint-example spreadsheet-id-example">
+            <span>網址範例</span>
+            <code>https://docs.google.com/spreadsheets/d/<b>SPREADSHEET_ID</b>/edit</code>
           </div>
 
-          <div class="field-grid">
+
+          <div class="field-grid cloud-config-fields">
             <label class="field field--wide">
-              <span>Google 試算表網址或 ID</span>
+              <span>在這裡貼上你剛建立的空白試算表連結</span>
               <input id="spreadsheet-source" type="text" autocomplete="off"
                 placeholder="https://docs.google.com/spreadsheets/d/.../edit">
-              <small>貼上完整網址時，系統會自動取出 SPREADSHEET_ID。</small>
+              <small>請貼上瀏覽器網址列中以 docs.google.com/spreadsheets 開頭的完整網址，不用自己尋找 ID。</small>
             </label>
 
             <div class="property-box field--wide">
               <div>
-                <span class="property-box__label">SPREADSHEET_ID</span>
-                <output id="spreadsheet-id">尚未輸入</output>
+                <span class="property-box__label">頁面辨識到的試算表 ID · 不用手動輸入</span>
+                <output id="spreadsheet-id">尚未貼上連結</output>
               </div>
               <button class="icon-button" id="copy-spreadsheet-id" type="button" disabled>
                 複製
               </button>
             </div>
+            <fieldset class="key-mode-selector field--wide">
+              <legend>設定方式（已預設推薦選項）</legend>
+              <div class="key-mode-selector__options">
+                <button class="key-mode-option is-selected" type="button" data-key-mode="auto"
+                  aria-pressed="true" disabled>
+                  <span>1</span>
+                  <strong>自動填入程式（推薦）</strong>
+                  <small>完整程式碼已經填好設定，直接貼上即可</small>
+                </button>
+                <button class="key-mode-option" type="button" data-key-mode="properties"
+                  aria-pressed="false" disabled>
+                  <span>2</span>
+                  <strong>自行新增名稱和值</strong>
+                  <small>網頁列出三組資料，由你到 Apps Script 逐項新增</small>
+                </button>
+              </div>
+              <p id="key-mode-help">已預設選中推薦方式。請先貼上試算表連結，辨識成功後就會自動套用。</p>
+            </fieldset>
 
             <div class="property-box field--wide">
               <div>
-                <span class="property-box__label">UPLOAD_KEY</span>
-                <output id="upload-key"></output>
+                <span class="property-box__label">掃描站上傳用金鑰（UPLOAD_KEY）</span>
+                <input id="upload-key" type="text" readonly autocomplete="off" spellcheck="false"
+                  aria-label="UPLOAD_KEY">
               </div>
               <div class="compact-actions">
                 <button class="icon-button" id="copy-upload-key" type="button">複製</button>
                 <button class="icon-button" id="generate-key" type="button">重新產生</button>
               </div>
             </div>
+
             <div class="property-box field--wide">
               <div>
-                <span class="property-box__label">READ_KEY</span>
-                <output id="read-key"></output>
+                <span class="property-box__label">成績頁讀取用金鑰（READ_KEY）</span>
+                <input id="read-key" type="text" readonly autocomplete="off" spellcheck="false"
+                  aria-label="READ_KEY">
               </div>
               <div class="compact-actions">
                 <button class="icon-button" id="copy-read-key" type="button">複製</button>
@@ -167,25 +170,96 @@
               </div>
             </div>
           </div>
+          <div class="script-properties-panel" id="script-properties-panel" hidden>
+            <div class="script-properties-panel__heading">
+              <div>
+                <p class="section-kicker">指令碼屬性</p>
+                <h3>到 Apps Script 的「專案設定」新增以下三個指令碼屬性</h3>
+              </div>
+              <span>名稱和值都要完整貼上</span>
+            </div>
+            <div class="script-property-list">
+              <div class="script-property-row">
+                <div><small>名稱</small><code>SPREADSHEET_ID</code></div>
+                <button class="icon-button" type="button" data-copy-literal="SPREADSHEET_ID">複製名稱</button>
+                <div><small>值</small><output id="property-spreadsheet-id">尚未貼上連結</output></div>
+                <button class="icon-button" type="button" data-copy-config="spreadsheetId">複製值</button>
+              </div>
+              <div class="script-property-row">
+                <div><small>名稱</small><code>UPLOAD_KEY</code></div>
+                <button class="icon-button" type="button" data-copy-literal="UPLOAD_KEY">複製名稱</button>
+                <div><small>值</small><output id="property-upload-key"></output></div>
+                <button class="icon-button" type="button" data-copy-config="uploadKey">複製值</button>
+              </div>
+              <div class="script-property-row">
+                <div><small>名稱</small><code>READ_KEY</code></div>
+                <button class="icon-button" type="button" data-copy-literal="READ_KEY">複製名稱</button>
+                <div><small>值</small><output id="property-read-key"></output></div>
+                <button class="icon-button" type="button" data-copy-config="readKey">複製值</button>
+              </div>
+            </div>
+          </div>
 
-          <p class="callout">
-            到 Apps Script 左側「專案設定 → 指令碼屬性」，新增上面三個名稱和值。
-            UPLOAD_KEY 會自動帶入下一步的站點設定；
-            READ_KEY 則用於成績計算頁讀取資料，兩者請勿設成相同值。
+          <div class="key-backup-row">
+            <button class="button button--quiet" id="download-key-backup" type="button">
+              下載並保存金鑰檔（必要）
+            </button>
+            <p id="key-backup-status" class="status" role="status">
+              重要：這是唯一包含完整讀取與上傳金鑰的備份。請務必保存，且不要公開分享。
+            </p>
+          </div>
+          <p class="callout" id="key-mode-summary">
+            請先完成試算表連結並選擇設定方式。完成後，第 3 步會自動準備
+            對應的完整程式碼。
           </p>
+        </section>
+
+        <section id="apps-script" class="step-card step-card--violet" aria-labelledby="step-code-title">
+          <div class="step-card__heading">
+            <span class="step-number"><b>03</b><i aria-hidden="true">{ }</i></span>
+            <div>
+              <p class="section-kicker">貼上雲端接收程式</p>
+              <h2 id="step-code-title">把完整雲端接收程式貼到試算表的 Apps Script</h2>
+            </div>
+          </div>
+          <p class="section-copy" id="code-key-mode-note">
+            請先完成第 2 步。選擇設定方式後，這裡會告訴你要貼哪一份程式，
+            以及是否需要另外新增指令碼屬性。
+          </p>
+
+          <div class="instruction-list code-paste-steps">
+            <div><b>1</b><p>回到你在第 2 步貼上連結的空白試算表，從上方選單點「擴充功能 → Apps Script」。</p></div>
+            <div><b>2</b><p>Apps Script 會在新分頁開啟。點左側現有的程式碼檔，按 <code>Ctrl + A</code> 刪除原本內容。檔名可能顯示為 <code>Code.gs</code>、<code>程式碼.gs</code>、<code>程式碼.js</code> 或其他名稱，名稱不影響功能。</p></div>
+            <div><b>3</b><p>按下方「複製完整程式碼」，回到剛才的編輯器貼上全部內容，再按 <code>Ctrl + S</code> 儲存。</p></div>
+            <div id="property-step-extra" hidden><b>4</b><p>開啟左側「專案設定 → 指令碼屬性」，按照第 2 步的清單新增三組名稱和值。</p></div>
+          </div>
+
+          <div class="action-row">
+            <button class="button button--primary" id="copy-code" type="button" disabled>
+              複製完整程式碼
+            </button>
+            <button class="button button--quiet" id="download-code" type="button" disabled>
+              下載完整程式碼
+            </button>
+            <span class="status" id="code-status" role="status">請先完成第 2 步。</span>
+          </div>
+          <details class="code-panel">
+            <summary>預覽將貼入 Apps Script 的完整程式碼 <span aria-hidden="true">⌄</span></summary>
+            <pre><code id="code-preview">完成第 2 步後顯示程式碼。</code></pre>
+          </details>
         </section>
 
         <section id="web-app-deploy" class="step-card step-card--yellow" aria-labelledby="step-deploy-title">
           <div class="step-card__heading">
             <span class="step-number"><b>04</b><i aria-hidden="true">↗</i></span>
             <div>
-              <p class="section-kicker">Web app deployment</p>
-              <h2 id="step-deploy-title">部署成網頁應用程式</h2>
+              <p class="section-kicker">取得連線網址</p>
+              <h2 id="step-deploy-title">把 Apps Script 部署成網頁應用程式</h2>
             </div>
           </div>
           <p class="section-copy">
-            Apps Script 右上角的「部署」會出現多個選項。這裡要建立正式上傳網址，
-            請選「新增部署作業」，不要使用測試部署。
+            完整程式碼儲存完成後，在 Apps Script 右上角建立正式部署。
+            請按照下方順序選擇；不要使用「測試部署」，因為掃描站需要固定的正式網址。
           </p>
 
           <ol class="deploy-click-path" aria-label="Apps Script 點選順序">
@@ -206,6 +280,11 @@
               <strong>我</strong>
               <small>使用你的帳號寫入試算表</small>
             </div>
+            <div class="deploy-option">
+              <span>說明</span>
+              <strong>ScanPoint 雲端上傳</strong>
+              <small>說明只是方便辨識，可直接照這段文字填寫</small>
+            </div>
             <div class="deploy-option deploy-option--accent">
               <span>誰可以存取</span>
               <strong>任何人</strong>
@@ -214,19 +293,26 @@
           </div>
 
           <div class="instruction-list">
-            <div><b>1</b><p>按「部署」，第一次會要求授權；選擇你的 Google 帳號並允許試算表存取。</p></div>
-            <div><b>2</b><p>完成後複製「網頁應用程式網址」，正式網址必須以 <code>/exec</code> 結尾。</p></div>
-            <div><b>3</b><p>先在瀏覽器開啟網址；看到 <code>"ok": true</code> 代表服務已啟動。</p></div>
-            <div><b>4</b><p>把同一個網址貼到下一步的「Apps Script 部署網址」。</p></div>
+            <div><b>1</b><p>按「部署」，第一次會要求授權。選擇你建立這份試算表與 Apps Script 的 Google 帳號。</p></div>
+            <div><b>2</b><p>若出現「Google 尚未驗證這個應用程式」，只在這是你自己建立、並親自貼入上述程式碼的專案時，點「進階」→「前往專案名稱（不安全）」→「允許」。不要對陌生人提供的 Apps Script 這樣操作。</p></div>
+            <div><b>3</b><p>完成後複製「網頁應用程式網址」，正式網址必須以 <code>/exec</code> 結尾。</p></div>
+            <div><b>4</b><p>先在瀏覽器開啟網址；看到 <code>"ok": true</code> 代表服務已啟動，再把網址貼到下方。</p></div>
           </div>
 
           <div class="endpoint-example">
-            <span>正確網址格式</span>
+            <span>正式網址格式</span>
             <code>https://script.google.com/macros/s/你的部署ID/exec</code>
           </div>
 
+          <label class="field field--wide deploy-url-field">
+            <span>貼上 Apps Script 正式網址</span>
+            <input id="upload-url" name="upload_url" type="url" required
+              placeholder="https://script.google.com/macros/s/.../exec" autocomplete="url">
+            <small>貼上剛才複製、以 /exec 結尾的完整網址；它會寫入完整包內的 cloud.config。</small>
+          </label>
+
           <p class="callout callout--compact">
-            日後修改 <code>Code.gs</code>：使用「部署 → 管理部署作業 → 編輯 → 新版本」，
+            日後修改 Apps Script 程式碼：使用「部署 → 管理部署作業 → 編輯 → 新版本」，
             原本的 <code>/exec</code> 網址就能繼續使用。
           </p>
         </section>
@@ -235,59 +321,22 @@
           <div class="step-card__heading">
             <span class="step-number"><b>05</b><i aria-hidden="true">↓</i></span>
             <div>
-              <p class="section-kicker">Station configuration</p>
-              <h2 id="step-station-title">下載站點設定檔</h2>
+              <p class="section-kicker">產生可直接設定的 Windows 軟體</p>
+              <h2 id="step-station-title">下載已含雲端配置的完整最新版</h2>
             </div>
           </div>
+          <p class="section-copy">
+            網頁會取得 GitHub 上最新建置完成的 ScanPoint Windows 軟體，並只在你的瀏覽器中加入預設的
+            <code>station.json</code> 與已設定完成的 <code>cloud.config</code>。後者包含試算表 ID、正式網址與上傳金鑰，內容不會上傳到 GitHub。
+            第一次啟動軟體時，畫面會要求你設定這台電腦的站點編號與名稱。
+          </p>
 
           <form id="station-form" novalidate>
-            <div class="field-grid">
-              <label class="field">
-                <span>站點編號</span>
-                <input id="station-id" name="station_id" type="text" value="CP1"
-                  maxlength="40" required autocomplete="off">
-                <small>每台電腦不可重複，例如 CP1、CP2。</small>
-              </label>
-
-              <label class="field">
-                <span>站點名稱</span>
-                <input id="station-name" name="station_name" type="text"
-                  placeholder="例如：水源地" maxlength="80" required autocomplete="off">
-              </label>
-
-              <label class="field">
-                <span>管理 PIN</span>
-                <input id="station-pin" name="pin" type="password" value="246810"
-                  inputmode="numeric" pattern="[0-9]{4,}" minlength="4" required autocomplete="new-password">
-                <small>至少 4 位數字，正式使用請更換預設值。</small>
-              </label>
-
-              <label class="field">
-                <span>額外備份資料夾（選填）</span>
-                <input id="extra-dir" name="extra_dir" type="text"
-                  placeholder="例如 E:\ScanPointBackup" autocomplete="off">
-              </label>
-
-              <label class="field field--wide">
-                <span>Apps Script 部署網址</span>
-                <input id="upload-url" name="upload_url" type="url"
-                  placeholder="https://script.google.com/macros/s/.../exec" autocomplete="url">
-                <small>部署網頁應用程式後取得，必須使用結尾為 /exec 的網址；可稍後在 App 裡補填。</small>
-              </label>
-
-              <label class="field field--wide">
-                <span>上傳金鑰</span>
-                <input id="station-upload-key" name="upload_token" type="text"
-                  readonly aria-describedby="upload-key-help">
-                <small id="upload-key-help">與上面的 UPLOAD_KEY 保持一致。</small>
-              </label>
-            </div>
-
             <div class="download-row">
-              <button class="button button--accent" type="submit">
-                下載 station.json <span aria-hidden="true">↓</span>
+              <button id="download-complete-package" class="button button--accent" type="submit">
+                下載完整 Windows 軟體 <span aria-hidden="true">↓</span>
               </button>
-              <p id="form-status" class="status" role="status"></p>
+              <p id="form-status" class="status" role="status" aria-live="polite"></p>
             </div>
           </form>
         </section>
@@ -296,14 +345,15 @@
           <div class="finish-card__title">
             <span class="finish-card__check" aria-hidden="true">06</span>
             <div>
-              <p class="section-kicker">READY TO DEPLOY</p>
-              <h2 id="finish-title">最後放到正確位置</h2>
+              <p class="section-kicker">解壓縮後即可使用</p>
+              <h2 id="finish-title">解壓縮並完成這台電腦的站點設定</h2>
             </div>
           </div>
           <ol>
-            <li>把下載的檔名保持為 <code>station.json</code>。</li>
-            <li>放在 <code>scan_point.exe</code> 同一個資料夾。</li>
-            <li>啟動程式，進入管理介面確認站點編號與名稱。</li>
+            <li>把下載的 ZIP 解壓縮到這台 Windows 電腦，不要直接在壓縮檔內執行。</li>
+            <li>資料夾內會有 <code>scan_point.exe</code>、<code>station.json</code> 與 <code>cloud.config</code>；請保持三者在同一層。</li>
+            <li>第一次執行 <code>scan_point.exe</code> 時，依畫面要求設定這台電腦的站點編號與名稱；不同掃描站請使用不同編號。</li>
+            <li><code>scanpoint-keys.json</code> 是管理與成績計算用的完整金鑰備份，請另外放在安全位置，不必放進掃描站資料夾。</li>
           </ol>
         </section>
         </div>
@@ -318,6 +368,7 @@
       <p>Google Apps Script 與掃描站部署教學</p>
     </footer>
 
+    <script src="vendor/jszip.min.js" defer></script>
     <script src="app.js" defer></script>
   </body>
 </html>

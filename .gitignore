@@ -1,8 +1,10 @@
 # Station data and configuration — never commit these.
-# station.json holds the admin PIN and the cloud upload token, and the
-# deployment flow puts a filled-in copy right next to the executable, which is
-# inside this tree. The scan logs are participant data.
+# station.json holds the admin PIN. cloud.config and key backup files hold
+# remote-access credentials. The scan logs are participant data.
 station.json
+cloud.config
+upload.key
+scanpoint-keys.json
 scans.jsonl
 scans-*.csv
 /export/

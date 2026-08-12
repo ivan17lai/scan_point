@@ -104,7 +104,7 @@ class EventLog {
 
   /// Values that must never reach the log. It travels on a USB stick and may
   /// end up in a shared spreadsheet.
-  static const Set<String> _redacted = {'pin', 'upload_token'};
+  static const Set<String> _redacted = {'pin', 'upload_token', 'UPLOAD_KEY'};
 
   set targets(List<Directory> value) => _targets = value;
 

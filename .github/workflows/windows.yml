@@ -108,6 +108,36 @@ jobs:
           path: scanpoint/build/windows/x64/runner/Release/
           if-no-files-found: error
 
+      - name: Package rolling Windows download
+        if: github.ref == 'refs/heads/main'
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path build/windows/x64/runner/Release/* `
+            -DestinationPath scan_point-windows-x64.zip
+
+      - name: Publish rolling Windows download
+        if: github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The deployment page downloads this fixed URL, so every successful
+          # main build replaces the asset while version tags remain immutable.
+          gh release view windows-latest 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create windows-latest `
+              --target "$env:GITHUB_SHA" `
+              --title "ScanPoint Windows latest" `
+              --notes "Automatically updated from the latest successful main build." `
+              --prerelease
+          }
+          gh release upload windows-latest scan_point-windows-x64.zip --clobber
+          gh release edit windows-latest `
+            --title "ScanPoint Windows latest" `
+            --notes "Build $env:GITHUB_SHA — automatically updated from main." `
+            --prerelease
+
       - name: Package for release
         if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh

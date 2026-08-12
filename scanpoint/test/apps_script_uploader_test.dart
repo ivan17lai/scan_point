@@ -36,6 +36,7 @@ void main() {
         payload: {
           'schema_version': 1,
           'api_key': 'secret',
+          'spreadsheet_id': 'sheet-id-1234567890',
           'scans': <Object?>[],
           'operations': <Object?>[],
         },
@@ -48,6 +49,7 @@ void main() {
       expect(requests.last.url.host, 'script.googleusercontent.com');
       final payload = jsonDecode(requests.first.body) as Map<String, dynamic>;
       expect(payload['api_key'], 'secret');
+      expect(payload['spreadsheet_id'], 'sheet-id-1234567890');
       expect(payload, containsPair('schema_version', 1));
     },
   );

@@ -27,4 +27,4 @@ The `web` directory is a zero-build static site. Its GitHub Pages workflow
 publishes only that directory.
 
 The page can copy `Code.gs`, create an upload key, extract a spreadsheet ID,
-and download a `station.json` compatible with the Flutter station app.
+and download the latest Windows station package with local `station.json` plus a `cloud.config` containing the spreadsheet ID, Apps Script URL, and upload key.

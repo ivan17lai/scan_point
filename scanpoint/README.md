@@ -155,30 +155,43 @@ PIN 讀的也是實體數字鍵,同樣不受輸入法影響;畫面上另外有�
 
 預設 PIN 是 `246810`,**現場部署前請改掉**。
 
-## 站點設定
+## 站點與雲端設定
 
-`station.json`,讀取優先序:
-
-1. 執行檔旁邊 —— 賽前預先設定好交給工作人員的那份
-2. `<文件>/OrienteeringSystem/station.json`
-3. 程式資料夾 —— 管理台寫入的那份
+本機站點設定使用 `station.json`，只包含站點身分、PIN 與本機備份位置：
 
 ```json
 {
   "station_id": "CP3",
   "station_name": "水源地",
   "pin": "246810",
-  "upload_url": "",
-  "upload_token": ""
+  "extra_dir": ""
 }
 ```
 
-管理台改設定會寫進 2 和 3。**放在執行檔旁邊的那份優先權最高**,現場改完設定若要生效,
-記得把它刪掉。
+遠端上傳完全由 `cloud.config` 提供，不會從 `station.json` 讀取任何舊的雲端欄位：
 
+```ini
+# ScanPoint remote upload configuration
+SPREADSHEET_ID=你的試算表ID
+UPLOAD_URL=https://script.google.com/macros/s/你的部署ID/exec
+UPLOAD_KEY=你的上傳金鑰
+```
+
+兩個檔案都使用相同的讀取優先序：
+
+1. `scan_point.exe` 旁邊
+2. `<文件>/OrienteeringSystem/`
+3. AppData 的程式資料目錄
+
+管理台儲存時會分別更新 `station.json` 與 `cloud.config`。三個雲端欄位必須同時完整，否則遠端上傳不會啟用。
+
+完整軟體包會附帶預設的 `station.json`（`CP1`、`未命名站點`）。第一次啟動會先顯示站點設定畫面，
+要求操作員輸入站點編號與實際名稱；儲存成功前不能進入掃描畫面。此畫面會暫停原生鍵盤阻擋並恢復
+Windows IME，因此站點名稱可正常輸入中文。儲存時也會盡力更新 exe 旁的 `station.json`，避免重開後
+再次讀到完整包內的預設值；若程式資料夾唯讀，文件與 AppData 副本仍會保留設定。
 ## 上傳
 
-管理台的「上傳到雲端」會把全部紀錄 POST 到 `upload_url`:
+管理台的「上傳到雲端」會使用 `cloud.config` 的 `UPLOAD_URL`，把全部紀錄 POST 到 Apps Script：
 
 ```json
 {
@@ -189,8 +202,8 @@ PIN 讀的也是實體數字鍵,同樣不受輸入法影響;畫面上另外有�
 }
 ```
 
-有填 `upload_token` 就會帶 `Authorization: Bearer <token>`。上傳不刪本機紀錄,可重複執行。
-沒設定網址時,按下「上傳到雲端」會提示先設定網址或改用匯出。
+請求會使用 `cloud.config` 的 `UPLOAD_KEY` 帶上 `Authorization: Bearer <token>`；`SPREADSHEET_ID` 則用來確認這份配置對應的試算表。上傳不刪本機紀錄，可重複執行。
+缺少 `cloud.config` 或其中任一必要欄位時，按下「上傳到雲端」會提示先完成雲端配置或改用匯出。
 
 ## 鎖定畫面
 
