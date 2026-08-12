@@ -45,6 +45,14 @@ test("every page refreshes stale deployments and versions static assets", () => 
   }
 });
 
+test("score data sources have an explicit OR separator", () => {
+  const html = fs.readFileSync(path.join(webRoot, "score.html"), "utf8");
+  const cloudIndex = html.indexOf("source-panel--cloud");
+  const separatorIndex = html.indexOf("score-source-or");
+  const localIndex = html.indexOf("source-panel--local");
+  assert.ok(cloudIndex < separatorIndex && separatorIndex < localIndex);
+  assert.match(html, />OR <span>或<\/span><\/div>/);
+});
 test("every direct ID selector used by page scripts exists in its HTML", () => {
   for (const [scriptName, htmlName] of [
     ["app.js", "deploy.html"],

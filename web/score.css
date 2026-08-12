@@ -93,8 +93,36 @@
 
 .score-source-grid {
   display: grid;
+  position: relative;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+}
+
+.score-source-or {
+  display: flex;
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  min-width: 62px;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 12px;
+  color: var(--md-sys-color-primary);
+  background: #f6f0ff;
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(33, 0, 93, 0.12);
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  transform: translate(-50%, -50%);
+}
+
+.score-source-or span {
+  font-size: 0.86rem;
+  letter-spacing: 0;
 }
 
 .source-panel {
@@ -827,6 +855,13 @@
 
   .score-source-grid {
     grid-template-columns: 1fr;
+  }
+
+  .score-source-or {
+    position: static;
+    justify-self: center;
+    margin-block: -5px;
+    transform: none;
   }
 
   .source-panel {
