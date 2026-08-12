@@ -29,6 +29,16 @@ const elements = {
   stationForm: document.querySelector("#station-form"),
   downloadCompletePackage: document.querySelector("#download-complete-package"),
   formStatus: document.querySelector("#form-status"),
+  deploymentModeButtons: document.querySelectorAll("[data-deployment-mode]"),
+  deploymentModeHelp: document.querySelector("#deployment-mode-help"),
+  cloudOnlyElements: document.querySelectorAll("[data-cloud-only]"),
+  offlineOnlyElements: document.querySelectorAll("[data-offline-only]"),
+  downloadStepNumbers: document.querySelectorAll("[data-download-step-number]"),
+  finishStepNumbers: document.querySelectorAll("[data-finish-step-number]"),
+  downloadNavLabel: document.querySelector("[data-download-nav-label]"),
+  downloadKicker: document.querySelector("[data-download-kicker]"),
+  downloadTitle: document.querySelector("[data-download-title]"),
+  downloadButtonLabel: document.querySelector("[data-download-button-label]"),
   pageProgressLinks: document.querySelectorAll("[data-progress-section]"),
   pageProgressNav: document.querySelector(".page-progress__nav"),
   pageProgressBar: document.querySelector("#page-progress-bar"),
@@ -38,14 +48,11 @@ const elements = {
 let rawCodeGs = "";
 let preparedCodeGs = "";
 let keyMode = "auto";
+let deploymentMode = "cloud";
 const keyValues = {upload: "", read: ""};
 let progressFrame = 0;
 let lastProgressIndex = -1;
 const latestWindowsPackageUrl = "downloads/scan_point-windows-x64.zip";
-const progressSections = Array.from(
-  elements.pageProgressLinks,
-  (link) => document.querySelector("#" + link.dataset.progressSection),
-);
 
 function setStatus(element, message, tone = "") {
   element.textContent = message;
@@ -302,38 +309,45 @@ async function loadCodeGs() {
   }
 }
 
+function visibleProgressEntries() {
+  return Array.from(elements.pageProgressLinks)
+    .filter((link) => !link.hidden)
+    .map((link) => ({
+      link,
+      section: document.querySelector("#" + link.dataset.progressSection),
+    }))
+    .filter((entry) => entry.section && !entry.section.hidden);
+}
+
 function updatePageProgress() {
+  const entries = visibleProgressEntries();
+  if (!entries.length) return;
   const markerPosition = window.scrollY + window.innerHeight * 0.38;
   let activeIndex = 0;
 
-  progressSections.forEach((section, index) => {
-    const sectionTop = section.getBoundingClientRect().top + window.scrollY;
-    if (section && sectionTop <= markerPosition) activeIndex = index;
+  entries.forEach((entry, index) => {
+    const sectionTop = entry.section.getBoundingClientRect().top + window.scrollY;
+    if (sectionTop <= markerPosition) activeIndex = index;
   });
 
   const pageBottom = window.scrollY + window.innerHeight;
   if (pageBottom >= document.documentElement.scrollHeight - 4) {
-    activeIndex = progressSections.length - 1;
+    activeIndex = entries.length - 1;
   }
 
   if (activeIndex === lastProgressIndex) return;
   lastProgressIndex = activeIndex;
 
-  elements.pageProgressLinks.forEach((link, index) => {
-    if (index === activeIndex) {
-      link.setAttribute("aria-current", "step");
-    } else {
-      link.removeAttribute("aria-current");
-    }
-  });
+  elements.pageProgressLinks.forEach((link) => link.removeAttribute("aria-current"));
+  entries[activeIndex].link.setAttribute("aria-current", "step");
 
-  const completed = ((activeIndex + 1) / progressSections.length) * 100;
+  const completed = ((activeIndex + 1) / entries.length) * 100;
   elements.pageProgressBar.style.width = completed + "%";
   elements.pageProgressLabel.value =
-    "步驟 " + (activeIndex + 1) + " / " + progressSections.length;
+    "步驟 " + (activeIndex + 1) + " / " + entries.length;
 
   if (window.matchMedia("(max-width: 1080px)").matches) {
-    const activeLink = elements.pageProgressLinks[activeIndex];
+    const activeLink = entries[activeIndex].link;
     const left =
       activeLink.offsetLeft -
       (elements.pageProgressNav.clientWidth - activeLink.offsetWidth) / 2;
@@ -344,6 +358,32 @@ function updatePageProgress() {
         : "smooth",
     });
   }
+}
+
+
+function setDeploymentMode(mode) {
+  if (mode !== "cloud" && mode !== "offline") return;
+  deploymentMode = mode;
+  const offline = mode === "offline";
+  elements.deploymentModeButtons.forEach((button) => {
+    const selected = button.dataset.deploymentMode === mode;
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+  elements.cloudOnlyElements.forEach((element) => { element.hidden = offline; });
+  elements.offlineOnlyElements.forEach((element) => { element.hidden = !offline; });
+  elements.downloadStepNumbers.forEach((element) => { element.textContent = offline ? "02" : "05"; });
+  elements.finishStepNumbers.forEach((element) => { element.textContent = offline ? "03" : "06"; });
+  elements.downloadNavLabel.textContent = offline ? "下載乾淨離線版" : "下載完整掃描站";
+  elements.downloadKicker.textContent = offline ? "不加入任何雲端設定" : "產生可直接設定的 Windows 軟體";
+  elements.downloadTitle.textContent = offline ? "下載乾淨的離線版軟體" : "下載已含雲端配置的完整最新版";
+  elements.downloadButtonLabel.textContent = offline ? "下載乾淨離線版 Windows 軟體" : "下載含雲端配置的 Windows 軟體";
+  elements.deploymentModeHelp.textContent = offline
+    ? "已選擇離線版。略過 Google 設定，直接到第 2 步下載乾淨軟體。"
+    : "已選擇雲端版。請先在 Google Drive 建立一份空白試算表，再依步驟完成設定。";
+  setStatus(elements.formStatus, "");
+  lastProgressIndex = -1;
+  window.requestAnimationFrame(updatePageProgress);
 }
 
 function schedulePageProgressUpdate() {
@@ -375,6 +415,10 @@ elements.spreadsheetSource.addEventListener("input", updateSpreadsheetId);
 
 elements.keyModeButtons.forEach((button) => {
   button.addEventListener("click", () => setKeyMode(button.dataset.keyMode));
+});
+
+elements.deploymentModeButtons.forEach((button) => {
+  button.addEventListener("click", () => setDeploymentMode(button.dataset.deploymentMode));
 });
 
 elements.propertyCopyButtons.forEach((button) => {
@@ -563,8 +607,36 @@ async function downloadCompleteStationPackage(stationValues, cloudValues) {
   }
 }
 
+
+async function downloadOfflinePackage() {
+  setStationDownloadBusy(true);
+  setStatus(elements.formStatus, "正在取得最新的乾淨離線版軟體，請稍候…");
+  try {
+    const response = await fetch(latestWindowsPackageUrl, {cache: "no-store"});
+    if (!response.ok) {
+      throw new Error(
+        response.status === 404
+          ? "最新 Windows 軟體仍在建置中，請等 GitHub Actions 完成後再試一次。"
+          : `無法下載最新 Windows 軟體（HTTP ${response.status}）。`,
+      );
+    }
+    downloadBlob(await response.blob(), "scan_point-windows-x64-offline.zip");
+    setStatus(elements.formStatus, "乾淨離線版已下載；不含 cloud.config、試算表 ID 或金鑰。", "success");
+  } finally {
+    setStationDownloadBusy(false);
+  }
+}
+
 elements.stationForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (deploymentMode === "offline") {
+    try {
+      await downloadOfflinePackage();
+    } catch (error) {
+      setStatus(elements.formStatus, error instanceof Error ? error.message : "離線版下載失敗，請稍後再試。", "error");
+    }
+    return;
+  }
   const cloudValues = readCloudConfigValues();
   if (!cloudValues) return;
   try {
@@ -581,5 +653,5 @@ elements.stationForm.addEventListener("submit", async (event) => {
 applyUploadKey(generateUploadKey());
 applyReadKey(generateUploadKey());
 updateKeyModeAvailability(false);
+setDeploymentMode("cloud");
 loadCodeGs();
-updatePageProgress();

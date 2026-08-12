@@ -23,7 +23,7 @@
           <a href="score.html">成績計算</a>
         </nav>
         <a class="topbar__action" href="#deploy-overview">
-          開始部署 <span aria-hidden="true">↓</span>
+          選擇版本 <span aria-hidden="true">↓</span>
         </a>
       </div>
     </header>
@@ -37,22 +37,22 @@
             <h2>完成<br>ScanPoint<br>部署</h2>
             <nav class="page-progress__nav" aria-label="部署步驟">
               <a href="#deploy-overview" data-progress-section="deploy-overview" aria-current="step">
-                <span>01</span><strong>部署前準備</strong>
+                <span>01</span><strong>選擇使用方式</strong>
               </a>
-              <a href="#cloud-settings" data-progress-section="cloud-settings">
+              <a href="#cloud-settings" data-progress-section="cloud-settings" data-cloud-only>
                 <span>02</span><strong>貼上試算表連結</strong>
               </a>
-              <a href="#apps-script" data-progress-section="apps-script">
+              <a href="#apps-script" data-progress-section="apps-script" data-cloud-only>
                 <span>03</span><strong>加入雲端接收程式</strong>
               </a>
-              <a href="#web-app-deploy" data-progress-section="web-app-deploy">
+              <a href="#web-app-deploy" data-progress-section="web-app-deploy" data-cloud-only>
                 <span>04</span><strong>取得正式部署網址</strong>
               </a>
               <a href="#station-config" data-progress-section="station-config">
-                <span>05</span><strong>下載完整掃描站</strong>
+                <span data-download-step-number>05</span><strong data-download-nav-label>下載完整掃描站</strong>
               </a>
               <a href="#deploy-finish" data-progress-section="deploy-finish">
-                <span>06</span><strong>解壓縮並確認</strong>
+                <span data-finish-step-number>06</span><strong>解壓縮並確認</strong>
               </a>
             </nav>
             <div class="page-progress__footer">
@@ -68,30 +68,38 @@
           <div class="step-card__heading">
             <span class="step-number"><b>01</b><i aria-hidden="true">✓</i></span>
             <div>
-              <p class="section-kicker">開始前準備</p>
-              <h2 id="deploy-overview-title">部署前先準備好兩樣東西</h2>
+              <p class="section-kicker">選擇資料模式</p>
+              <h2 id="deploy-overview-title">先選擇雲端版或離線版</h2>
             </div>
           </div>
           <div class="deploy-overview__grid">
             <div class="deploy-overview__copy">
               <p class="eyebrow">SCANPOINT DEPLOYMENT GUIDE</p>
-              <h3>從一份空白試算表，<br>到可以接收資料的掃描站。</h3>
+              <h3>建立由 Google 試算表<br>製作的資料庫。</h3>
               <p>
-                接下來依序完成六個步驟。本頁會產生金鑰、準備完整雲端接收程式，
-                最後直接下載已包含站點設定與上傳金鑰的最新 Windows 軟體。
+                雲端版會引導你建立 Google 試算表資料庫並準備上傳設定；
+                如果現場只需要離線記錄，也可以直接下載不含雲端設定與金鑰的乾淨軟體。
               </p>
               <a class="back-link" href="index.html"><span aria-hidden="true">←</span> 回到專案首頁</a>
             </div>
-            <div class="deploy-overview__prep" aria-label="開始前準備">
-              <ol>
-                <li><i>1</i><span>在 Google Drive 新增一份空白試算表，並保持開啟</span></li>
-                <li><i>2</i><span>確認目前登入的 Google 帳號可以編輯這份試算表</span></li>
-              </ol>
-              <p>不需要先建立欄位或工作表；本頁產生的設定只會在你的瀏覽器內處理。</p>
+            <div class="deploy-overview__prep deploy-mode-selector" aria-label="選擇資料模式">
+              <button class="deploy-mode-option is-selected" type="button" data-deployment-mode="cloud"
+                aria-pressed="true">
+                <span aria-hidden="true">☁</span>
+                <strong>雲端版（推薦）</strong>
+                <small>建立 Google 試算表資料庫，活動結束後可一次上傳並計算成績。</small>
+              </button>
+              <button class="deploy-mode-option" type="button" data-deployment-mode="offline"
+                aria-pressed="false">
+                <span aria-hidden="true">↧</span>
+                <strong>離線版</strong>
+                <small>不設定 Google 試算表，直接下載乾淨軟體，只在本機記錄與匯出。</small>
+              </button>
+              <p id="deployment-mode-help">已選擇雲端版。請先在 Google Drive 建立一份空白試算表，再依步驟完成設定。</p>
             </div>
           </div>
         </section>
-        <section id="cloud-settings" class="step-card step-card--blue" aria-labelledby="step-cloud-title">
+        <section id="cloud-settings" class="step-card step-card--blue" aria-labelledby="step-cloud-title" data-cloud-only>
           <div class="step-card__heading">
             <span class="step-number"><b>02</b><i aria-hidden="true">✦</i></span>
             <div>
@@ -214,7 +222,7 @@
           </p>
         </section>
 
-        <section id="apps-script" class="step-card step-card--violet" aria-labelledby="step-code-title">
+        <section id="apps-script" class="step-card step-card--violet" aria-labelledby="step-code-title" data-cloud-only>
           <div class="step-card__heading">
             <span class="step-number"><b>03</b><i aria-hidden="true">{ }</i></span>
             <div>
@@ -249,7 +257,7 @@
           </details>
         </section>
 
-        <section id="web-app-deploy" class="step-card step-card--yellow" aria-labelledby="step-deploy-title">
+        <section id="web-app-deploy" class="step-card step-card--yellow" aria-labelledby="step-deploy-title" data-cloud-only>
           <div class="step-card__heading">
             <span class="step-number"><b>04</b><i aria-hidden="true">↗</i></span>
             <div>
@@ -319,22 +327,26 @@
 
         <section id="station-config" class="step-card step-card--peach" aria-labelledby="step-station-title">
           <div class="step-card__heading">
-            <span class="step-number"><b>05</b><i aria-hidden="true">↓</i></span>
+            <span class="step-number"><b data-download-step-number>05</b><i aria-hidden="true">↓</i></span>
             <div>
-              <p class="section-kicker">產生可直接設定的 Windows 軟體</p>
-              <h2 id="step-station-title">下載已含雲端配置的完整最新版</h2>
+              <p class="section-kicker" data-download-kicker>產生可直接設定的 Windows 軟體</p>
+              <h2 id="step-station-title" data-download-title>下載已含雲端配置的完整最新版</h2>
             </div>
           </div>
-          <p class="section-copy">
+          <p class="section-copy" data-cloud-only>
             網頁會取得 GitHub 上最新建置完成的 ScanPoint Windows 軟體，並只在你的瀏覽器中加入預設的
             <code>station.json</code> 與已設定完成的 <code>cloud.config</code>。後者包含試算表 ID、正式網址與上傳金鑰，內容不會上傳到 GitHub。
             第一次啟動軟體時，畫面會要求你設定這台電腦的站點編號與名稱。
+          </p>
+          <p class="section-copy" data-offline-only hidden>
+            直接下載最新的 ScanPoint Windows 軟體，不加入 <code>cloud.config</code>、試算表 ID 或任何金鑰。
+            第一次啟動時只需要設定站點編號與名稱，之後所有掃描資料都保存在本機並可手動匯出。
           </p>
 
           <form id="station-form" novalidate>
             <div class="download-row">
               <button id="download-complete-package" class="button button--accent" type="submit">
-                下載完整 Windows 軟體 <span aria-hidden="true">↓</span>
+                <span data-download-button-label>下載含雲端配置的 Windows 軟體</span> <span aria-hidden="true">↓</span>
               </button>
               <p id="form-status" class="status" role="status" aria-live="polite"></p>
             </div>
@@ -343,7 +355,7 @@
 
         <section id="deploy-finish" class="finish-card" aria-labelledby="finish-title">
           <div class="finish-card__title">
-            <span class="finish-card__check" aria-hidden="true">06</span>
+            <span class="finish-card__check" aria-hidden="true" data-finish-step-number>06</span>
             <div>
               <p class="section-kicker">解壓縮後即可使用</p>
               <h2 id="finish-title">解壓縮並完成這台電腦的站點設定</h2>
@@ -351,9 +363,11 @@
           </div>
           <ol>
             <li>把下載的 ZIP 解壓縮到這台 Windows 電腦，不要直接在壓縮檔內執行。</li>
-            <li>資料夾內會有 <code>scan_point.exe</code>、<code>station.json</code> 與 <code>cloud.config</code>；請保持三者在同一層。</li>
+            <li data-cloud-only>資料夾內會有 <code>scan_point.exe</code>、<code>station.json</code> 與 <code>cloud.config</code>；請保持三者在同一層。</li>
+            <li data-offline-only hidden>離線版不包含 <code>cloud.config</code> 或任何金鑰；解壓縮後直接執行 <code>scan_point.exe</code>。</li>
             <li>第一次執行 <code>scan_point.exe</code> 時，依畫面要求設定這台電腦的站點編號與名稱；不同掃描站請使用不同編號。</li>
-            <li><code>scanpoint-keys.json</code> 是管理與成績計算用的完整金鑰備份，請另外放在安全位置，不必放進掃描站資料夾。</li>
+            <li data-cloud-only><code>scanpoint-keys.json</code> 是管理與成績計算用的完整金鑰備份，請另外放在安全位置，不必放進掃描站資料夾。</li>
+            <li data-offline-only hidden>需要集中統計時，從掃描站設定介面匯出紀錄，再帶到計分電腦處理。</li>
           </ol>
         </section>
         </div>

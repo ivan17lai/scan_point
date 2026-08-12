@@ -1708,6 +1708,62 @@ a:focus-visible {
   line-height: 1.6;
 }
 
+.deployment-page [hidden] {
+  display: none !important;
+}
+
+.deploy-mode-selector {
+  gap: 12px;
+}
+
+.deploy-mode-option {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 3px 14px;
+  width: 100%;
+  padding: 17px;
+  color: var(--md-sys-color-on-surface);
+  text-align: left;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 22px;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.deploy-mode-option > span {
+  display: grid;
+  grid-row: 1 / span 2;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  color: var(--md-sys-color-primary);
+  background: var(--md-sys-color-secondary-container);
+  border-radius: 16px;
+  font-size: 1.25rem;
+}
+
+.deploy-mode-option strong {
+  align-self: end;
+  font-size: 1rem;
+}
+
+.deploy-mode-option small {
+  color: var(--md-sys-color-on-surface-variant);
+  line-height: 1.45;
+}
+
+.deploy-mode-option:hover {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: var(--md-sys-color-primary);
+}
+
+.deploy-mode-option.is-selected {
+  background: var(--md-sys-color-primary-container);
+  border: 2px solid var(--md-sys-color-primary);
+  box-shadow: 0 4px 12px rgba(72, 54, 112, 0.13);
+}
+
 .step-card--yellow {
   background: #fff2bd;
 }
