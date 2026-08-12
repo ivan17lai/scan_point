@@ -38,6 +38,7 @@ const elements = {
   cloudOnlyElements: document.querySelectorAll("[data-cloud-only]"),
   offlineOnlyElements: document.querySelectorAll("[data-offline-only]"),
   downloadStepNumbers: document.querySelectorAll("[data-download-step-number]"),
+  mappingStepNumbers: document.querySelectorAll("[data-mapping-step-number]"),
   finishStepNumbers: document.querySelectorAll("[data-finish-step-number]"),
   downloadNavLabel: document.querySelector("[data-download-nav-label]"),
   downloadKicker: document.querySelector("[data-download-kicker]"),
@@ -405,14 +406,15 @@ function setDeploymentMode(mode) {
   });
   elements.cloudOnlyElements.forEach((element) => { element.hidden = offline; });
   elements.offlineOnlyElements.forEach((element) => { element.hidden = !offline; });
-  elements.downloadStepNumbers.forEach((element) => { element.textContent = offline ? "01" : "04"; });
-  elements.finishStepNumbers.forEach((element) => { element.textContent = offline ? "02" : "05"; });
+  elements.mappingStepNumbers.forEach((element) => { element.textContent = offline ? "01" : "04"; });
+  elements.downloadStepNumbers.forEach((element) => { element.textContent = offline ? "02" : "05"; });
+  elements.finishStepNumbers.forEach((element) => { element.textContent = offline ? "03" : "06"; });
   elements.downloadNavLabel.textContent = offline ? "下載乾淨離線版" : "下載完整掃描站";
   elements.downloadKicker.textContent = offline ? "不加入任何雲端設定" : "產生可直接設定的 Windows 軟體";
   elements.downloadTitle.textContent = offline ? "下載乾淨的離線版軟體" : "下載已含雲端配置的完整最新版";
   elements.downloadButtonLabel.textContent = offline ? "下載乾淨離線版 Windows 軟體" : "下載含雲端配置的 Windows 軟體";
   elements.deploymentModeHelp.textContent = offline
-    ? "已選擇離線版。略過 Google 設定，直接到第 1 步下載乾淨軟體。"
+    ? "已選擇離線版。可先在第 1 步加入選手手環對照表，或略過並到第 2 步下載乾淨軟體。"
     : "已選擇雲端版。請先在 Google Drive 建立一份空白試算表，再依步驟完成設定。";
   setStatus(elements.formStatus, "");
   lastProgressIndex = -1;

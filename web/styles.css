@@ -2363,3 +2363,31 @@ a:focus-visible {
 @media (max-width: 560px) {
   .id-mapping-picker,
   .id-mapping-upload__actions .button {
+    width: 100%;
+  }
+}
+
+.optional-label {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 2px 7px;
+  color: #4f378b;
+  background: #eaddff;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+#id-mapping .id-mapping-upload {
+  margin-bottom: 0;
+}
+
+#id-mapping .step-number i {
+  font-size: 0.8rem;
+  font-style: normal;
+  font-weight: 800;
+}
