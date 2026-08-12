@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app_controller.dart';
+import '../model/station_setup_validator.dart';
 
 /// First-run station identity setup shown before the scanner can be used.
 class SetupScreen extends StatefulWidget {
@@ -47,20 +48,15 @@ class _SetupScreenState extends State<SetupScreen> {
     final stationName = _stationName.text.trim();
     final pin = _pin.text;
     final pinConfirmation = _pinConfirmation.text;
-    if (stationId.isEmpty) {
-      setState(() => _error = '請輸入站點編號');
-      return;
-    }
-    if (stationName.isEmpty || stationName == '未命名站點') {
-      setState(() => _error = '請輸入實際站點名稱');
-      return;
-    }
-    if (pin.length < 4) {
-      setState(() => _error = '管理 PIN 至少要 4 位數字');
-      return;
-    }
-    if (pin != pinConfirmation) {
-      setState(() => _error = '兩次輸入的管理 PIN 不一致');
+    final validationError =
+        StationSetupValidator.validateIdentity(
+          stationId: stationId,
+          stationName: stationName,
+        ) ??
+        StationSetupValidator.validatePin(pin) ??
+        StationSetupValidator.validateConfirmation(pin, pinConfirmation);
+    if (validationError != null) {
+      setState(() => _error = validationError);
       return;
     }
 

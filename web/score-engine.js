@@ -68,6 +68,14 @@
       if (Array.isArray(value)) return value;
       if (Array.isArray(value.scans)) return value.scans;
       if (Array.isArray(value.records)) return value.records;
+      if (
+        value &&
+        typeof value === "object" &&
+        (value.card_id || value.cardId || value.card) &&
+        (value.station_id || value.stationId)
+      ) {
+        return [value];
+      }
       return [];
     } catch (_) {
       return trimmed

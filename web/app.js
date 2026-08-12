@@ -1,5 +1,7 @@
 "use strict";
 
+const deploymentCore = window.ScanPointDeploymentCore;
+
 const elements = {
   codePreview: document.querySelector("#code-preview"),
   copyCode: document.querySelector("#copy-code"),
@@ -106,7 +108,7 @@ function applyReadKey(key) {
 }
 
 function isValidKey(value) {
-  return value.length >= 16 && !/\s/.test(value);
+  return deploymentCore.isValidKey(value);
 }
 
 function currentConfigValues() {
@@ -183,10 +185,7 @@ function setKeyMode(mode) {
   updatePreparedCode();
 }
 function parseSpreadsheetId(value) {
-  const trimmed = value.trim();
-  const urlMatch = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-  if (urlMatch) return urlMatch[1];
-  return /^[a-zA-Z0-9_-]{20,}$/.test(trimmed) ? trimmed : "";
+  return deploymentCore.parseSpreadsheetId(value);
 }
 
 function updateSpreadsheetId() {
@@ -465,42 +464,29 @@ const defaultStationConfig = {
 };
 
 function readCloudConfigValues() {
-  const values = {
-    spreadsheetId: parseSpreadsheetId(elements.spreadsheetSource.value),
-    uploadUrl: document.querySelector("#upload-url").value.trim(),
-    uploadKey: elements.uploadKey.value.trim(),
-    readKey: elements.readKey.value.trim(),
-  };
-  if (!values.spreadsheetId) {
-    setStatus(elements.formStatus, "找不到試算表 ID，請先回到第 1 步貼上空白試算表連結。", "error");
+  try {
+    return deploymentCore.normalizeCloudConfig({
+      spreadsheetSource: elements.spreadsheetSource.value,
+      uploadUrl: document.querySelector("#upload-url").value,
+      uploadKey: elements.uploadKey.value,
+      readKey: elements.readKey.value,
+    });
+  } catch (error) {
+    const message = {
+      SPREADSHEET_ID_INVALID: "找不到試算表 ID，請先回到第 1 步貼上空白試算表連結。",
+      UPLOAD_URL_INVALID: "請貼上第 3 步取得、以 /exec 結尾的 Apps Script 正式網址。",
+      UPLOAD_KEY_INVALID: "上傳金鑰尚未準備完成，請先回到第 1 步。",
+      READ_KEY_INVALID: "讀取金鑰尚未準備完成，請先回到第 1 步。",
+    }[error.message] || "雲端配置無效，請重新檢查前面的步驟。";
+    setStatus(elements.formStatus, message, "error");
     return null;
   }
-  if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(values.uploadUrl)) {
-    setStatus(elements.formStatus, "請貼上第 3 步取得、以 /exec 結尾的 Apps Script 正式網址。", "error");
-    return null;
-  }
-  if (!isValidKey(values.uploadKey)) {
-    setStatus(elements.formStatus, "上傳金鑰尚未準備完成，請先回到第 1 步。", "error");
-    return null;
-  }
-  if (!isValidKey(values.readKey)) {
-    setStatus(elements.formStatus, "讀取金鑰尚未準備完成，請先回到第 1 步。", "error");
-    return null;
-  }
-  return values;
 }
 
 function downloadCompleteKeyBundle() {
   const values = readCloudConfigValues();
   if (!values) return;
-  const bundle = {
-    format: "scanpoint-key-backup",
-    schema_version: 2,
-    SPREADSHEET_ID: values.spreadsheetId,
-    UPLOAD_URL: values.uploadUrl,
-    UPLOAD_KEY: values.uploadKey,
-    READ_KEY: values.readKey,
-  };
+  const bundle = deploymentCore.buildKeyBundle(values);
   downloadText(
     `${JSON.stringify(bundle, null, 2)}\n`,
     "scanpoint-keys.json",
@@ -511,25 +497,6 @@ function downloadCompleteKeyBundle() {
     "完整鑰匙檔已下載。請安全保存；成績計算時只需匯入這一個檔案。",
     "success",
   );
-}
-
-function buildStationConfig(values) {
-  return {
-    station_id: values.stationId,
-    station_name: values.stationName,
-    pin: values.pin,
-    extra_dir: values.extraDir,
-  };
-}
-
-function buildCloudConfig(values) {
-  return [
-    "# ScanPoint remote upload configuration",
-    `SPREADSHEET_ID=${values.spreadsheetId}`,
-    `UPLOAD_URL=${values.uploadUrl}`,
-    `UPLOAD_KEY=${values.uploadKey}`,
-    "",
-  ].join("\n");
 }
 
 function setStationDownloadBusy(busy) {
@@ -567,30 +534,7 @@ async function downloadCompleteStationPackage(stationValues, cloudValues) {
 
     setStatus(elements.formStatus, "已取得最新版，正在加入這台站點的設定與金鑰…");
     const zip = await window.JSZip.loadAsync(await response.arrayBuffer());
-    for (const name of Object.keys(zip.files)) {
-      if (/(^|\/)(station\.json|cloud\.config|upload\.key|開始使用\.txt)$/i.test(name)) {
-        zip.remove(name);
-      }
-    }
-
-    zip.file(
-      "station.json",
-      `${JSON.stringify(buildStationConfig(stationValues), null, 2)}\n`,
-    );
-    zip.file("cloud.config", buildCloudConfig(cloudValues));
-    zip.file(
-      "開始使用.txt",
-      [
-        "ScanPoint 掃描站",
-        "",
-        "站點：首次啟動時設定",
-        "1. 將整個資料夾解壓縮。",
-        "2. 保持 station.json 與 cloud.config 在 scan_point.exe 同一資料夾。",
-        "3. 第一次執行 scan_point.exe 時，依畫面要求設定站點編號、名稱與管理 PIN。",
-        "",
-        "cloud.config 包含試算表 ID 與上傳金鑰，請勿公開分享。",
-      ].join("\r\n"),
-    );
+    deploymentCore.customizeStationArchive(zip, stationValues, cloudValues);
 
     const packageBlob = await zip.generateAsync(
       {

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'audio/tone_player.dart';
 import 'model/scan_record.dart';
 import 'model/station_config.dart';
+import 'model/station_setup_validator.dart';
 import 'platform/kiosk_lock.dart';
 import 'scanner/scan_decoder.dart';
 import 'storage/config_store.dart';
@@ -280,15 +281,15 @@ class AppController extends ChangeNotifier {
     required String pin,
   }) async {
     if (_mode != AppMode.setup) return;
-    final normalizedPin = pin.replaceAll(RegExp(r'[^0-9]'), '');
-    if (normalizedPin.length < 4 || normalizedPin != pin) {
-      throw ArgumentError.value(pin, 'pin', '管理 PIN 必須是至少 4 位數字');
+    final validationError = StationSetupValidator.validatePin(pin);
+    if (validationError != null) {
+      throw ArgumentError.value(pin, 'pin', validationError);
     }
     await updateConfig(
       _config.copyWith(
         stationId: stationId.trim(),
         stationName: stationName.trim(),
-        pin: normalizedPin,
+        pin: pin,
       ),
     );
     _mode = AppMode.kiosk;

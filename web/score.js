@@ -1,8 +1,7 @@
 "use strict";
 
 const engine = window.ScanPointScoreEngine;
-const appsScriptEndpointPattern =
-  /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/;
+const scoreConfig = window.ScanPointScoreConfig;
 
 const elements = {
   app: document.querySelector("#score-app"),
@@ -202,23 +201,9 @@ async function importKeyBackup(file) {
   if (!file) return;
   try {
     const payload = JSON.parse(await file.text());
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      throw new Error("金鑰檔格式無效");
-    }
-    const uploadUrl =
-      payload.UPLOAD_URL || payload.upload_url || payload.uploadUrl;
-    const readKey = payload.READ_KEY || payload.read_key || payload.readKey;
-    if (
-      typeof uploadUrl !== "string" ||
-      !appsScriptEndpointPattern.test(uploadUrl.trim())
-    ) {
-      throw new Error("UPLOAD_URL 必須是以 /exec 結尾的 Apps Script 正式網址");
-    }
-    if (typeof readKey !== "string" || !readKey.trim()) {
-      throw new Error("檔案中找不到 READ_KEY");
-    }
-    elements.cloudUrl.value = uploadUrl.trim();
-    elements.readKey.value = readKey.trim();
+    const values = scoreConfig.parseKeyBackupPayload(payload);
+    elements.cloudUrl.value = values.uploadUrl;
+    elements.readKey.value = values.readKey;
     elements.keyFileStatus.textContent =
       `已從 ${file.name} 帶入 Apps Script 網址與 READ_KEY`;
     elements.keyFileStatus.dataset.tone = "success";
@@ -269,20 +254,18 @@ async function loadCloud() {
   const endpointText = elements.cloudUrl.value.trim();
   const readKey = elements.readKey.value.trim();
 
-  if (!appsScriptEndpointPattern.test(endpointText)) {
-    setStatus(elements.dataStatus, "請輸入以 /exec 結尾的 Apps Script 正式網址。", "error");
-    elements.cloudUrl.focus();
+  let endpoint;
+  try {
+    endpoint = scoreConfig.buildScoreEndpoint(endpointText, readKey);
+  } catch (error) {
+    setStatus(elements.dataStatus, error.message, "error");
+    if (!scoreConfig.appsScriptEndpointPattern.test(endpointText)) {
+      elements.cloudUrl.focus();
+    } else {
+      elements.readKey.focus();
+    }
     return;
   }
-  if (!readKey) {
-    setStatus(elements.dataStatus, "請輸入 READ_KEY。", "error");
-    elements.readKey.focus();
-    return;
-  }
-
-  const endpoint = new URL(endpointText);
-  endpoint.searchParams.set("action", "scores");
-  endpoint.searchParams.set("read_key", readKey);
 
   elements.loadCloud.disabled = true;
   setStatus(elements.dataStatus, "正在從 Google 試算表讀取…");

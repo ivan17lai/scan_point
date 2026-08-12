@@ -25,6 +25,27 @@ on:
   workflow_dispatch:
 
 jobs:
+  web-tests:
+    name: Web tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check web/deployment-core.js
+          node --check web/app.js
+          node --check web/score-engine.js
+          node --check web/score-config.js
+          node --check web/score.js
+
+      - name: Test deployment, package, and scoring workflows
+        run: node --test web/tests/*.test.js
+
   build:
     runs-on: windows-latest
 
