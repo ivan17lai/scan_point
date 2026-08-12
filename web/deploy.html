@@ -6,7 +6,7 @@
     <meta name="description" content="ScanPoint Google Apps Script 與掃描站完整部署教學">
     <meta name="theme-color" content="#fef7ff">
     <title>部署 ScanPoint｜完整設定教學</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=20260813-3">
   </head>
   <body class="deployment-page">
     <header class="site-header">
@@ -30,43 +30,10 @@
 
     <main id="top" class="deployment-main">
 
-      <div class="shell content-layout content-layout--deployment">
-        <aside class="page-progress" aria-label="本頁進度">
-          <div class="page-progress__inner">
-            <p class="page-progress__eyebrow">本頁內容</p>
-            <h2>完成<br>ScanPoint<br>部署</h2>
-            <nav class="page-progress__nav" aria-label="部署步驟">
-              <a href="#deploy-overview" data-progress-section="deploy-overview" aria-current="step">
-                <span>01</span><strong>選擇使用方式</strong>
-              </a>
-              <a href="#cloud-settings" data-progress-section="cloud-settings" data-cloud-only>
-                <span>02</span><strong>貼上試算表連結</strong>
-              </a>
-              <a href="#apps-script" data-progress-section="apps-script" data-cloud-only>
-                <span>03</span><strong>加入雲端接收程式</strong>
-              </a>
-              <a href="#web-app-deploy" data-progress-section="web-app-deploy" data-cloud-only>
-                <span>04</span><strong>取得正式部署網址</strong>
-              </a>
-              <a href="#station-config" data-progress-section="station-config">
-                <span data-download-step-number>05</span><strong data-download-nav-label>下載完整掃描站</strong>
-              </a>
-              <a href="#deploy-finish" data-progress-section="deploy-finish">
-                <span data-finish-step-number>06</span><strong>解壓縮並確認</strong>
-              </a>
-            </nav>
-            <div class="page-progress__footer">
-              <div class="page-progress__track"><span id="page-progress-bar"></span></div>
-              <output id="page-progress-label">步驟 1 / 6</output>
-            </div>
-          </div>
-        </aside>
-
-        <div class="workflow">
-        <section id="deploy-overview" class="step-card deploy-overview"
+        <section id="deploy-overview" class="shell step-card deploy-overview deploy-overview--mode"
           aria-labelledby="deploy-overview-title">
           <div class="step-card__heading">
-            <span class="step-number"><b>01</b><i aria-hidden="true">✓</i></span>
+            <span class="step-number"><b>00</b><i aria-hidden="true">✓</i></span>
             <div>
               <p class="section-kicker">選擇資料模式</p>
               <h2 id="deploy-overview-title">先選擇雲端版或離線版</h2>
@@ -75,7 +42,8 @@
           <div class="deploy-overview__grid">
             <div class="deploy-overview__copy">
               <p class="eyebrow">SCANPOINT DEPLOYMENT GUIDE</p>
-              <h3>建立由 Google 試算表<br>製作的資料庫。</h3>
+              <h3 data-cloud-only>建立由 Google 試算表<br>製作的資料庫。</h3>
+              <h3 data-offline-only hidden>下載乾淨的<br>離線掃描站。</h3>
               <p>
                 雲端版會引導你建立 Google 試算表資料庫並準備上傳設定；
                 如果現場只需要離線記錄，也可以直接下載不含雲端設定與金鑰的乾淨軟體。
@@ -99,16 +67,48 @@
             </div>
           </div>
         </section>
+
+      <div class="shell content-layout content-layout--deployment">
+        <aside class="page-progress" aria-label="本頁進度">
+          <div class="page-progress__inner">
+            <p class="page-progress__eyebrow">本頁內容</p>
+            <h2>完成<br>ScanPoint<br>部署</h2>
+            <nav class="page-progress__nav" aria-label="部署步驟">
+              <a href="#cloud-settings" data-progress-section="cloud-settings" data-cloud-only>
+                <span>01</span><strong>貼上試算表連結</strong>
+              </a>
+              <a href="#apps-script" data-progress-section="apps-script" data-cloud-only>
+                <span>02</span><strong>加入雲端接收程式</strong>
+              </a>
+              <a href="#web-app-deploy" data-progress-section="web-app-deploy" data-cloud-only>
+                <span>03</span><strong>取得正式部署網址</strong>
+              </a>
+              <a href="#station-config" data-progress-section="station-config">
+                <span data-download-step-number>04</span><strong data-download-nav-label>下載完整掃描站</strong>
+              </a>
+              <a href="#deploy-finish" data-progress-section="deploy-finish">
+                <span data-finish-step-number>05</span><strong>解壓縮並確認</strong>
+              </a>
+            </nav>
+            <div class="page-progress__footer">
+              <div class="page-progress__track"><span id="page-progress-bar"></span></div>
+              <output id="page-progress-label">步驟 1 / 5</output>
+            </div>
+          </div>
+        </aside>
+
+        <div class="workflow">
+
         <section id="cloud-settings" class="step-card step-card--blue" aria-labelledby="step-cloud-title" data-cloud-only>
           <div class="step-card__heading">
-            <span class="step-number"><b>02</b><i aria-hidden="true">✦</i></span>
+            <span class="step-number"><b>01</b><i aria-hidden="true">✦</i></span>
             <div>
               <p class="section-kicker">連結試算表</p>
-              <h2 id="step-cloud-title">貼上你剛建立的空白試算表連結</h2>
+              <h2 id="step-cloud-title">建立的空白試算表</h2>
             </div>
           </div>
           <p class="section-copy">
-            回到第 1 步建立的空白試算表，複製瀏覽器網址列中的完整網址，
+            先在 Google Drive 建立一份空白試算表，再複製瀏覽器網址列中的完整網址，
             再貼到下方輸入框。頁面會自動辨識試算表 ID，你不需要自己截取網址。
           </p>
 
@@ -217,29 +217,29 @@
             </p>
           </div>
           <p class="callout" id="key-mode-summary">
-            請先完成試算表連結並選擇設定方式。完成後，第 3 步會自動準備
+            請先完成試算表連結並選擇設定方式。完成後，第 1 步會自動準備
             對應的完整程式碼。
           </p>
         </section>
 
         <section id="apps-script" class="step-card step-card--violet" aria-labelledby="step-code-title" data-cloud-only>
           <div class="step-card__heading">
-            <span class="step-number"><b>03</b><i aria-hidden="true">{ }</i></span>
+            <span class="step-number"><b>02</b><i aria-hidden="true">{ }</i></span>
             <div>
               <p class="section-kicker">貼上雲端接收程式</p>
               <h2 id="step-code-title">把完整雲端接收程式貼到試算表的 Apps Script</h2>
             </div>
           </div>
           <p class="section-copy" id="code-key-mode-note">
-            請先完成第 2 步。選擇設定方式後，這裡會告訴你要貼哪一份程式，
+            請先完成第 1 步。選擇設定方式後，這裡會告訴你要貼哪一份程式，
             以及是否需要另外新增指令碼屬性。
           </p>
 
           <div class="instruction-list code-paste-steps">
-            <div><b>1</b><p>回到你在第 2 步貼上連結的空白試算表，從上方選單點「擴充功能 → Apps Script」。</p></div>
+            <div><b>1</b><p>回到你在第 1 步貼上連結的空白試算表，從上方選單點「擴充功能 → Apps Script」。</p></div>
             <div><b>2</b><p>Apps Script 會在新分頁開啟。點左側現有的程式碼檔，按 <code>Ctrl + A</code> 刪除原本內容。檔名可能顯示為 <code>Code.gs</code>、<code>程式碼.gs</code>、<code>程式碼.js</code> 或其他名稱，名稱不影響功能。</p></div>
             <div><b>3</b><p>按下方「複製完整程式碼」，回到剛才的編輯器貼上全部內容，再按 <code>Ctrl + S</code> 儲存。</p></div>
-            <div id="property-step-extra" hidden><b>4</b><p>開啟左側「專案設定 → 指令碼屬性」，按照第 2 步的清單新增三組名稱和值。</p></div>
+            <div id="property-step-extra" hidden><b>4</b><p>開啟左側「專案設定 → 指令碼屬性」，按照第 1 步的清單新增三組名稱和值。</p></div>
           </div>
 
           <div class="action-row">
@@ -249,17 +249,17 @@
             <button class="button button--quiet" id="download-code" type="button" disabled>
               下載完整程式碼
             </button>
-            <span class="status" id="code-status" role="status">請先完成第 2 步。</span>
+            <span class="status" id="code-status" role="status">請先完成第 1 步。</span>
           </div>
           <details class="code-panel">
             <summary>預覽將貼入 Apps Script 的完整程式碼 <span aria-hidden="true">⌄</span></summary>
-            <pre><code id="code-preview">完成第 2 步後顯示程式碼。</code></pre>
+            <pre><code id="code-preview">完成第 1 步後顯示程式碼。</code></pre>
           </details>
         </section>
 
         <section id="web-app-deploy" class="step-card step-card--yellow" aria-labelledby="step-deploy-title" data-cloud-only>
           <div class="step-card__heading">
-            <span class="step-number"><b>04</b><i aria-hidden="true">↗</i></span>
+            <span class="step-number"><b>03</b><i aria-hidden="true">↗</i></span>
             <div>
               <p class="section-kicker">取得連線網址</p>
               <h2 id="step-deploy-title">把 Apps Script 部署成網頁應用程式</h2>
@@ -327,7 +327,7 @@
 
         <section id="station-config" class="step-card step-card--peach" aria-labelledby="step-station-title">
           <div class="step-card__heading">
-            <span class="step-number"><b data-download-step-number>05</b><i aria-hidden="true">↓</i></span>
+            <span class="step-number"><b data-download-step-number>04</b><i aria-hidden="true">↓</i></span>
             <div>
               <p class="section-kicker" data-download-kicker>產生可直接設定的 Windows 軟體</p>
               <h2 id="step-station-title" data-download-title>下載已含雲端配置的完整最新版</h2>
@@ -355,7 +355,7 @@
 
         <section id="deploy-finish" class="finish-card" aria-labelledby="finish-title">
           <div class="finish-card__title">
-            <span class="finish-card__check" aria-hidden="true" data-finish-step-number>06</span>
+            <span class="finish-card__check" aria-hidden="true" data-finish-step-number>05</span>
             <div>
               <p class="section-kicker">解壓縮後即可使用</p>
               <h2 id="finish-title">解壓縮並完成這台電腦的站點設定</h2>
@@ -383,6 +383,6 @@
     </footer>
 
     <script src="vendor/jszip.min.js" defer></script>
-    <script src="app.js" defer></script>
+    <script src="app.js?v=20260813-3" defer></script>
   </body>
 </html>

@@ -1618,7 +1618,11 @@ a:focus-visible {
 }
 
 .content-layout--deployment .page-progress__track span {
-  width: 16.6667%;
+  width: 20%;
+}
+
+.deploy-overview--mode {
+  margin-top: 42px;
 }
 .deploy-overview {
   background: var(--md-sys-color-primary-container);
@@ -1646,7 +1650,7 @@ a:focus-visible {
 .deploy-overview__copy h3 {
   margin: 0 0 22px;
   color: var(--md-sys-color-on-primary-container);
-  font-size: clamp(2.15rem, 4.3vw, 4rem);
+  font-size: clamp(1.75rem, 3.2vw, 3rem);
   font-weight: 590;
   letter-spacing: -0.055em;
   line-height: 1;

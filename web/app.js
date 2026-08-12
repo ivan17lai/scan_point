@@ -141,7 +141,7 @@ function updateKeyModeAvailability(hasSpreadsheetId) {
     elements.keyModeSummary.textContent =
       "先貼上空白試算表連結；完成後頁面會依推薦方式準備完整程式碼。";
     elements.codeKeyModeNote.textContent =
-      "請先回到第 2 步貼上空白試算表連結。辨識成功後，這裡會提供可直接貼上的完整程式碼。";
+      "請先回到第 1 步貼上空白試算表連結。辨識成功後，這裡會提供可直接貼上的完整程式碼。";
     updatePropertyValues();
     updatePreparedCode();
     return;
@@ -170,10 +170,10 @@ function setKeyMode(mode) {
     elements.keyModeSummary.textContent =
       "這種方式會由 Apps Script 的指令碼屬性保存設定。請完整新增 SPREADSHEET_ID、UPLOAD_KEY、READ_KEY 三組名稱和值。";
     elements.codeKeyModeNote.textContent =
-      "下方是支援指令碼屬性的完整程式碼。貼上並儲存後，還要回到「專案設定」新增第 2 步列出的三組名稱和值。";
+      "下方是支援指令碼屬性的完整程式碼。貼上並儲存後，還要回到「專案設定」新增第 1 步列出的三組名稱和值。";
   } else {
     elements.keyModeHelp.textContent =
-      "已選擇推薦方式。第 3 步提供的完整程式碼已包含試算表 ID 與兩組金鑰，不必再新增指令碼屬性。";
+      "已選擇推薦方式。第 1 步提供的完整程式碼已包含試算表 ID 與兩組金鑰，不必再新增指令碼屬性。";
     elements.keyModeSummary.textContent =
       "頁面會把試算表 ID 與兩組金鑰直接填入完整程式碼。";
     elements.codeKeyModeNote.textContent =
@@ -218,7 +218,7 @@ function updatePreparedCode() {
   }
   if (!spreadsheetId) {
     preparedCodeGs = "";
-    elements.codePreview.textContent = "請先回到第 2 步，貼上你建立的空白試算表完整連結。";
+    elements.codePreview.textContent = "請先回到第 1 步，貼上你建立的空白試算表完整連結。";
     elements.copyCode.disabled = true;
     elements.downloadCode.disabled = true;
     setStatus(elements.codeStatus, "尚未辨識到試算表，請先貼上完整連結。", "error");
@@ -227,7 +227,7 @@ function updatePreparedCode() {
   if (!isValidKey(uploadKey) || !isValidKey(readKey)) {
     preparedCodeGs = "";
     elements.codePreview.textContent =
-      "第 2 步的兩組金鑰尚未準備完成，請回到上方重新產生。";
+      "第 1 步的兩組金鑰尚未準備完成，請回到上方重新產生。";
     elements.copyCode.disabled = true;
     elements.downloadCode.disabled = true;
     setStatus(elements.codeStatus, "兩組金鑰尚未準備完成，暫時不能產生完整程式碼。", "error");
@@ -235,7 +235,7 @@ function updatePreparedCode() {
   }
   if (!keyMode) {
     preparedCodeGs = "";
-    elements.codePreview.textContent = "試算表已辨識，請回到第 2 步選擇設定方式。";
+    elements.codePreview.textContent = "試算表已辨識，請回到第 1 步選擇設定方式。";
     elements.copyCode.disabled = true;
     elements.downloadCode.disabled = true;
     setStatus(elements.codeStatus, "請先選擇「自動填入程式」或「自行新增名稱和值」。", "error");
@@ -372,14 +372,14 @@ function setDeploymentMode(mode) {
   });
   elements.cloudOnlyElements.forEach((element) => { element.hidden = offline; });
   elements.offlineOnlyElements.forEach((element) => { element.hidden = !offline; });
-  elements.downloadStepNumbers.forEach((element) => { element.textContent = offline ? "02" : "05"; });
-  elements.finishStepNumbers.forEach((element) => { element.textContent = offline ? "03" : "06"; });
+  elements.downloadStepNumbers.forEach((element) => { element.textContent = offline ? "01" : "04"; });
+  elements.finishStepNumbers.forEach((element) => { element.textContent = offline ? "02" : "05"; });
   elements.downloadNavLabel.textContent = offline ? "下載乾淨離線版" : "下載完整掃描站";
   elements.downloadKicker.textContent = offline ? "不加入任何雲端設定" : "產生可直接設定的 Windows 軟體";
   elements.downloadTitle.textContent = offline ? "下載乾淨的離線版軟體" : "下載已含雲端配置的完整最新版";
   elements.downloadButtonLabel.textContent = offline ? "下載乾淨離線版 Windows 軟體" : "下載含雲端配置的 Windows 軟體";
   elements.deploymentModeHelp.textContent = offline
-    ? "已選擇離線版。略過 Google 設定，直接到第 2 步下載乾淨軟體。"
+    ? "已選擇離線版。略過 Google 設定，直接到第 1 步下載乾淨軟體。"
     : "已選擇雲端版。請先在 Google Drive 建立一份空白試算表，再依步驟完成設定。";
   setStatus(elements.formStatus, "");
   lastProgressIndex = -1;
@@ -491,15 +491,15 @@ function readCloudConfigValues() {
     uploadKey: elements.uploadKey.value.trim(),
   };
   if (!values.spreadsheetId) {
-    setStatus(elements.formStatus, "找不到試算表 ID，請先回到第 2 步貼上空白試算表連結。", "error");
+    setStatus(elements.formStatus, "找不到試算表 ID，請先回到第 1 步貼上空白試算表連結。", "error");
     return null;
   }
   if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(values.uploadUrl)) {
-    setStatus(elements.formStatus, "請貼上第 4 步取得、以 /exec 結尾的 Apps Script 正式網址。", "error");
+    setStatus(elements.formStatus, "請貼上第 3 步取得、以 /exec 結尾的 Apps Script 正式網址。", "error");
     return null;
   }
   if (!isValidKey(values.uploadKey)) {
-    setStatus(elements.formStatus, "上傳金鑰尚未準備完成，請先回到第 2 步。", "error");
+    setStatus(elements.formStatus, "上傳金鑰尚未準備完成，請先回到第 1 步。", "error");
     return null;
   }
   return values;
