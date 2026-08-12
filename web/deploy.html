@@ -3,10 +3,14 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta name="description" content="ScanPoint Google Apps Script 與掃描站完整部署教學">
     <meta name="theme-color" content="#fef7ff">
     <title>部署 ScanPoint｜完整設定教學</title>
-    <link rel="stylesheet" href="styles.css?v=20260813-4">
+    <script src="cache-refresh.js?v=__SCANPOINT_VERSION__"></script>
+    <link rel="stylesheet" href="styles.css?v=__SCANPOINT_VERSION__">
   </head>
   <body class="deployment-page">
     <header class="site-header">
@@ -340,7 +344,7 @@
             <div class="id-mapping-format" aria-label="對照表欄位說明">
               <div><code>id</code><span>填入 NFC 手環掃描出的原始 ID，例如 <b>04A81C92</b></span></div>
               <div><code>text</code><span>填入希望掃描畫面顯示的內容，例如 <b>王小明 · 第一隊</b></span></div>
-              <a class="button button--quiet id-mapping-example-download" href="examples/id-mapping-example.csv" download>
+              <a class="button button--quiet id-mapping-example-download" href="examples/id-mapping-example.csv?v=__SCANPOINT_VERSION__" download>
                 下載 CSV 範例檔 <span aria-hidden="true">↓</span>
               </a>
             </div>
@@ -436,8 +440,8 @@
       <p>Google Apps Script 與掃描站部署教學</p>
     </footer>
 
-    <script src="vendor/jszip.min.js" defer></script>
-    <script src="deployment-core.js?v=20260813-4" defer></script>
-    <script src="app.js?v=20260813-4" defer></script>
+    <script src="vendor/jszip.min.js?v=__SCANPOINT_VERSION__" defer></script>
+    <script src="deployment-core.js?v=__SCANPOINT_VERSION__" defer></script>
+    <script src="app.js?v=__SCANPOINT_VERSION__" defer></script>
   </body>
 </html>

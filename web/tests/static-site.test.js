@@ -29,6 +29,22 @@ for (const filename of htmlFiles) {
   });
 }
 
+test("every page refreshes stale deployments and versions static assets", () => {
+  for (const filename of htmlFiles) {
+    const html = fs.readFileSync(path.join(webRoot, filename), "utf8");
+    assert.match(html, /http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/);
+    assert.match(html, /src="cache-refresh\.js\?v=__SCANPOINT_VERSION__"/);
+
+    for (const match of html.matchAll(/(?:src|href)="([^"]+\.(?:js|css))(?:\?([^"]+))?"/g)) {
+      assert.equal(
+        match[2],
+        "v=__SCANPOINT_VERSION__",
+        `${filename} has an unversioned static asset: ${match[1]}`,
+      );
+    }
+  }
+});
+
 test("every direct ID selector used by page scripts exists in its HTML", () => {
   for (const [scriptName, htmlName] of [
     ["app.js", "deploy.html"],
