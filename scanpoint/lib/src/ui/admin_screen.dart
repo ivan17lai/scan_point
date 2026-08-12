@@ -749,23 +749,38 @@ class _AdminScreenState extends State<AdminScreen> {
                       ],
                     ),
                   ),
-                _section('本站概況', [
-                  _metricGrid(c),
-                  const SizedBox(height: 16),
-                  _kv('設定來源', c.configSource),
-                  if (store.lastWriteError != null)
-                    _kv('寫入警告', store.lastWriteError!),
-                  if (KioskLock.nativeError != null)
-                    _kv('鎖定狀態', KioskLock.nativeError!),
-                  if (TonePlayer.unavailableReason != null)
-                    _kv('音效狀態', TonePlayer.unavailableReason!),
-                  const SizedBox(height: 16),
-                  FilledButton.tonalIcon(
-                    onPressed: _openHistory,
-                    icon: const Icon(Icons.history_rounded),
-                    label: const Text('顯示歷史紀錄'),
-                  ),
-                ]),
+                _section(
+                  '本站概況',
+                  [
+                    _metricGrid(c),
+                    const SizedBox(height: 16),
+                    _kv('設定來源', c.configSource),
+                    if (store.lastWriteError != null)
+                      _kv('寫入警告', store.lastWriteError!),
+                    if (KioskLock.nativeError != null)
+                      _kv('鎖定狀態', KioskLock.nativeError!),
+                    if (TonePlayer.unavailableReason != null)
+                      _kv('音效狀態', TonePlayer.unavailableReason!),
+                    const SizedBox(height: 16),
+                    FilledButton.tonalIcon(
+                      onPressed: _openHistory,
+                      icon: const Icon(Icons.history_rounded),
+                      label: const Text('顯示歷史紀錄'),
+                    ),
+                  ],
+                  headerActions: [
+                    FilledButton.tonalIcon(
+                      onPressed: _busy ? null : _export,
+                      icon: const Icon(Icons.folder_zip_rounded),
+                      label: const Text('匯出站點紀錄'),
+                    ),
+                    FilledButton.icon(
+                      onPressed: _busy ? null : _upload,
+                      icon: const Icon(Icons.cloud_upload_rounded),
+                      label: const Text('上傳到雲端'),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 24),
                 _section('站點設定', [
                   _field('站點編號', _stationId, hint: 'CP3'),
@@ -840,33 +855,6 @@ class _AdminScreenState extends State<AdminScreen> {
                         fontSize: 13,
                         height: 1.5,
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      FilledButton.icon(
-                        onPressed: _busy ? null : _export,
-                        icon: const Icon(Icons.folder_zip_rounded),
-                        label: const Text('選擇資料夾並匯出'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: _busy ? null : _upload,
-                        icon: const Icon(Icons.cloud_upload_rounded),
-                        label: const Text('上傳到雲端'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '按下匯出後選擇目的地，系統會建立完整快照；上傳則使用已儲存的網址與權杖。'
-                    '兩項操作都不會刪除本機紀錄。',
-                    style: TextStyle(
-                      color: scheme.onSurfaceVariant,
-                      fontSize: 13,
-                      height: 1.5,
                     ),
                   ),
                 ]),
@@ -1013,12 +1001,16 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
-  Widget _section(String title, List<Widget> children) {
+  Widget _section(
+    String title,
+    List<Widget> children, {
+    List<Widget> headerActions = const [],
+  }) {
     final scheme = Theme.of(context).colorScheme;
     final (icon, subtitle) = switch (title) {
-      '本站概況' => (Icons.monitor_heart_rounded, '即時紀錄與裝置狀態'),
+      '本站概況' => (Icons.monitor_heart_rounded, '即時紀錄、匯出與雲端上傳'),
       '站點設定' => (Icons.tune_rounded, '站點識別、管理密碼與雲端上傳'),
-      '儲存位置' => (Icons.storage_rounded, '固定副本、額外備份、匯出與上傳'),
+      '儲存位置' => (Icons.storage_rounded, '固定副本與額外備份位置'),
       '離開' => (Icons.power_settings_new_rounded, '解除現場保護並關閉程式'),
       _ => (Icons.settings_rounded, ''),
     };
@@ -1065,6 +1057,15 @@ class _AdminScreenState extends State<AdminScreen> {
                   ],
                 ),
               ),
+              if (headerActions.isNotEmpty) ...[
+                const SizedBox(width: 16),
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: headerActions,
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 20),

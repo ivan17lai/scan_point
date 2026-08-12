@@ -1,6 +1,8 @@
 "use strict";
 
 const engine = window.ScanPointScoreEngine;
+const appsScriptEndpointPattern =
+  /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/;
 
 const elements = {
   app: document.querySelector("#score-app"),
@@ -31,7 +33,7 @@ const elements = {
   scanMetric: document.querySelector("#metric-scans"),
   resultBody: document.querySelector("#score-result-body"),
   emptyState: document.querySelector("#score-empty-state"),
-  resultTable: document.querySelector("#score-result-table"),
+  resultView: document.querySelector("#score-result-view"),
   resultStatus: document.querySelector("#score-result-status"),
   search: document.querySelector("#score-search"),
   exportButton: document.querySelector("#export-score"),
@@ -156,7 +158,7 @@ function resetResults() {
   elements.stationMetric.textContent = "—";
   elements.scanMetric.textContent = "—";
   elements.resultBody.replaceChildren();
-  elements.resultTable.hidden = true;
+  elements.resultView.hidden = true;
   elements.emptyState.hidden = false;
   elements.exportButton.disabled = true;
   elements.resultStatus.textContent = "完成前兩個步驟後顯示成績。";
@@ -200,12 +202,25 @@ async function importKeyBackup(file) {
   if (!file) return;
   try {
     const payload = JSON.parse(await file.text());
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      throw new Error("金鑰檔格式無效");
+    }
+    const uploadUrl =
+      payload.UPLOAD_URL || payload.upload_url || payload.uploadUrl;
     const readKey = payload.READ_KEY || payload.read_key || payload.readKey;
+    if (
+      typeof uploadUrl !== "string" ||
+      !appsScriptEndpointPattern.test(uploadUrl.trim())
+    ) {
+      throw new Error("UPLOAD_URL 必須是以 /exec 結尾的 Apps Script 正式網址");
+    }
     if (typeof readKey !== "string" || !readKey.trim()) {
       throw new Error("檔案中找不到 READ_KEY");
     }
+    elements.cloudUrl.value = uploadUrl.trim();
     elements.readKey.value = readKey.trim();
-    elements.keyFileStatus.textContent = `已從 ${file.name} 帶入 READ_KEY`;
+    elements.keyFileStatus.textContent =
+      `已從 ${file.name} 帶入 Apps Script 網址與 READ_KEY`;
     elements.keyFileStatus.dataset.tone = "success";
   } catch (error) {
     elements.keyFileStatus.textContent = `金鑰檔讀取失敗：${error.message}`;
@@ -254,7 +269,7 @@ async function loadCloud() {
   const endpointText = elements.cloudUrl.value.trim();
   const readKey = elements.readKey.value.trim();
 
-  if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(endpointText)) {
+  if (!appsScriptEndpointPattern.test(endpointText)) {
     setStatus(elements.dataStatus, "請輸入以 /exec 結尾的 Apps Script 正式網址。", "error");
     elements.cloudUrl.focus();
     return;
@@ -321,7 +336,7 @@ function calculateScore() {
   elements.scanMetric.textContent = String(scoreResult.validRecordCount);
   elements.exportButton.disabled = scoreResult.participants.length === 0;
   elements.emptyState.hidden = true;
-  elements.resultTable.hidden = false;
+  elements.resultView.hidden = false;
   resultReady = true;
   setStatus(
     elements.ruleStatus,

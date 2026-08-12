@@ -277,12 +277,18 @@ class AppController extends ChangeNotifier {
   Future<void> completeStationSetup({
     required String stationId,
     required String stationName,
+    required String pin,
   }) async {
     if (_mode != AppMode.setup) return;
+    final normalizedPin = pin.replaceAll(RegExp(r'[^0-9]'), '');
+    if (normalizedPin.length < 4 || normalizedPin != pin) {
+      throw ArgumentError.value(pin, 'pin', '管理 PIN 必須是至少 4 位數字');
+    }
     await updateConfig(
       _config.copyWith(
         stationId: stationId.trim(),
         stationName: stationName.trim(),
+        pin: normalizedPin,
       ),
     );
     _mode = AppMode.kiosk;

@@ -3,9 +3,9 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="ScanPoint 離線現場刷卡、可靠備份與活動後集中上傳系統">
+    <meta name="description" content="ScanPoint 免費定向越野刷卡、離線紀錄、可靠備份與活動計分系統">
     <meta name="theme-color" content="#fef7ff">
-    <title>ScanPoint｜離線現場刷卡系統</title>
+    <title>ScanPoint｜免費定向越野刷卡系統</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
@@ -17,8 +17,7 @@
         </a>
         <nav class="topbar__nav" aria-label="頁面導覽">
           <a href="#top">首頁</a>
-          <a href="#features">系統特色</a>
-          <a href="#architecture">專案架構</a>
+          <a href="#station">系統介紹</a>
           <a href="deploy.html">部署教學</a>
           <a href="score.html">成績計算</a>
         </nav>
@@ -32,26 +31,21 @@
       <section class="shell hero">
         <div class="hero__copy">
           <p class="eyebrow">OFFLINE EVENT CHECKPOINT SYSTEM</p>
-          <h1>沒有網路，<br>紀錄也不能停。</h1>
+          <h1>免費的定向越野，<br>從這裡開始。</h1>
           <p class="hero__lead">
             ScanPoint 是為現場活動打造的離線刷卡系統。掃描站獨立記錄、
-            多份即時備份，活動結束後再一次匯出或上傳。
+            多份即時備份，活動結束後也能輕鬆計分。
           </p>
           <div class="hero__actions">
-            <a class="button button--hero" href="#features">
+            <a class="button button--hero" href="#station">
               認識 ScanPoint <span aria-hidden="true">→</span>
             </a>
             <a class="button button--hero-quiet" href="deploy.html">
-              直接建立站點
+              開始建立站點
             </a>
             <a class="button button--hero-quiet" href="score.html">
-              開啟成績計算
+              進行成績計算
             </a>
-          </div>
-          <div class="hero__tags" aria-label="系統特色">
-            <span>Offline-first</span>
-            <span>Windows kiosk</span>
-            <span>Google Sheets</span>
           </div>
         </div>
 
@@ -140,6 +134,39 @@
         </div>
       </section>
 
+      <section id="station" class="shell station-section" aria-labelledby="station-title">
+        <div class="station-section__copy">
+          <p class="eyebrow">ONE SETUP, ONE CHECKPOINT</p>
+          <h2 id="station-title">
+            <span>一台 Windows 電腦，一台 NFC 讀卡機，</span>
+            <span>就是一個站點。</span>
+          </h2>
+          <p>每個站點會獨立記錄參加者的 NFC 手環刷卡時間並保存資料，不需要持續連線。活動結束後匯入各站紀錄，就能計算完成時間與排名。</p>
+        </div>
+        <div class="station-diagram" role="img" aria-label="Windows 電腦搭配 NFC 讀卡機組成獨立站點，記錄 NFC 手環刷卡資料">
+          <div class="station-device station-device--computer">
+            <span class="station-device__label">WINDOWS</span>
+            <div class="station-monitor" aria-hidden="true">
+              <div class="station-monitor__screen">
+                <span>ScanPoint</span>
+                <strong>CP1</strong>
+                <small>等待刷卡</small>
+              </div>
+              <i></i>
+            </div>
+          </div>
+          <span class="station-diagram__operator" aria-hidden="true">＋</span>
+          <div class="station-device station-device--reader">
+            <span class="station-device__label">NFC READER</span>
+            <div class="station-reader" aria-hidden="true">
+              <span>)))</span>
+              <i></i>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
       <section id="features" class="shell intro-section">
         <div class="intro-heading">
           <p class="eyebrow">BUILT FOR THE FIELD</p>
@@ -183,48 +210,6 @@
         </div>
       </section>
 
-      <section id="architecture" class="shell architecture-section">
-        <div class="architecture-copy">
-          <p class="eyebrow">MODULAR BY DESIGN</p>
-          <h2>三個模組，<br>各自做好一件事。</h2>
-          <p>
-            現場記錄、部署設定與成績計算分開運作，
-            任何一部分發生問題都不會拖垮正在刷卡的站點。
-          </p>
-        </div>
-        <div class="module-grid">
-          <article class="module-card module-card--station">
-            <div class="module-card__top">
-              <span>01</span><small>AVAILABLE</small>
-            </div>
-            <h3>ScanPoint Station</h3>
-            <p>Windows 全螢幕掃描站，負責讀卡、提示、去重與本機多重保存。</p>
-            <code>scanpoint/</code>
-          </article>
-          <article class="module-card module-card--web">
-            <div class="module-card__top">
-              <span>02</span><small>AVAILABLE</small>
-            </div>
-            <h3>Deployment Web</h3>
-            <p>這個靜態網站，負責 Apps Script、金鑰與站點設定檔。</p>
-            <code>web/</code>
-          </article>
-          <article class="module-card module-card--score">
-            <div class="module-card__top">
-              <span>03</span><small>AVAILABLE</small>
-            </div>
-            <h3>Score Center</h3>
-            <p>匯入各站資料、計算成績並輸出活動排名的集中工作站。</p>
-            <code>web/score.html</code>
-          </article>
-        </div>
-        <div class="system-flow" aria-label="資料流程">
-          <span>讀卡機</span><i aria-hidden="true">→</i>
-          <span>ScanPoint</span><i aria-hidden="true">→</i>
-          <span>本機紀錄</span><i aria-hidden="true">→</i>
-          <span>Score Center／Google Sheets</span>
-        </div>
-      </section>
 
       <section class="shell deployment-cta" aria-labelledby="deployment-cta-title">
         <div class="deployment-cta__copy">

@@ -153,6 +153,34 @@
   margin-top: auto;
 }
 
+.score-source-instruction {
+  margin: 8px 0 2px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.score-source-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.score-source-divider::before,
+.score-source-divider::after {
+  height: 1px;
+  flex: 1;
+  background: rgba(73, 69, 79, 0.22);
+  content: "";
+}
+
+.score-source-divider span {
+  white-space: nowrap;
+}
+
 .score-key-import {
   display: flex;
   align-items: center;
@@ -642,6 +670,11 @@
   background: rgba(255, 255, 255, 0.48);
   border-radius: 26px;
   text-align: center;
+}
+
+.score-empty[hidden],
+.result-table-wrap[hidden] {
+  display: none;
 }
 
 .score-empty > span {

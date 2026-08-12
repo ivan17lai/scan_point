@@ -24,10 +24,9 @@ const elements = {
   propertyUploadKey: document.querySelector("#property-upload-key"),
   propertyReadKey: document.querySelector("#property-read-key"),
   propertyCopyButtons: document.querySelectorAll("[data-copy-literal], [data-copy-config]"),
-  downloadKeyBackup: document.querySelector("#download-key-backup"),
-  keyBackupStatus: document.querySelector("#key-backup-status"),
   stationForm: document.querySelector("#station-form"),
   downloadCompletePackage: document.querySelector("#download-complete-package"),
+  downloadKeyBundle: document.querySelector("#download-key-bundle"),
   formStatus: document.querySelector("#form-status"),
   deploymentModeButtons: document.querySelectorAll("[data-deployment-mode]"),
   deploymentModeHelp: document.querySelector("#deployment-mode-help"),
@@ -272,23 +271,6 @@ function downloadText(value, filename, mimeType) {
   URL.revokeObjectURL(url);
 }
 
-function downloadKeyBackup() {
-  const values = currentConfigValues();
-  const backup = {
-    format: "scanpoint-key-backup",
-    schema_version: 1,
-    SPREADSHEET_ID: values.spreadsheetId,
-    UPLOAD_KEY: values.uploadKey,
-    READ_KEY: values.readKey,
-  };
-  downloadText(
-    `${JSON.stringify(backup, null, 2)}\n`,
-    "scanpoint-keys.json",
-    "application/json;charset=utf-8",
-  );
-  setStatus(elements.keyBackupStatus, "金鑰檔已下載。請妥善保存；之後部署掃描站或進入成績計算頁都會用到。", "success");
-}
-
 async function loadCodeGs() {
   try {
     const response = await fetch("google_apps_script/Code.gs", {cache: "no-store"});
@@ -434,8 +416,6 @@ elements.propertyCopyButtons.forEach((button) => {
   });
 });
 
-elements.downloadKeyBackup.addEventListener("click", downloadKeyBackup);
-
 elements.copySpreadsheetId.addEventListener("click", async () => {
   const id = parseSpreadsheetId(elements.spreadsheetSource.value);
   const copied = await copyText(id);
@@ -489,6 +469,7 @@ function readCloudConfigValues() {
     spreadsheetId: parseSpreadsheetId(elements.spreadsheetSource.value),
     uploadUrl: document.querySelector("#upload-url").value.trim(),
     uploadKey: elements.uploadKey.value.trim(),
+    readKey: elements.readKey.value.trim(),
   };
   if (!values.spreadsheetId) {
     setStatus(elements.formStatus, "找不到試算表 ID，請先回到第 1 步貼上空白試算表連結。", "error");
@@ -502,7 +483,34 @@ function readCloudConfigValues() {
     setStatus(elements.formStatus, "上傳金鑰尚未準備完成，請先回到第 1 步。", "error");
     return null;
   }
+  if (!isValidKey(values.readKey)) {
+    setStatus(elements.formStatus, "讀取金鑰尚未準備完成，請先回到第 1 步。", "error");
+    return null;
+  }
   return values;
+}
+
+function downloadCompleteKeyBundle() {
+  const values = readCloudConfigValues();
+  if (!values) return;
+  const bundle = {
+    format: "scanpoint-key-backup",
+    schema_version: 2,
+    SPREADSHEET_ID: values.spreadsheetId,
+    UPLOAD_URL: values.uploadUrl,
+    UPLOAD_KEY: values.uploadKey,
+    READ_KEY: values.readKey,
+  };
+  downloadText(
+    `${JSON.stringify(bundle, null, 2)}\n`,
+    "scanpoint-keys.json",
+    "application/json;charset=utf-8",
+  );
+  setStatus(
+    elements.formStatus,
+    "完整鑰匙檔已下載。請安全保存；成績計算時只需匯入這一個檔案。",
+    "success",
+  );
 }
 
 function buildStationConfig(values) {
@@ -526,6 +534,7 @@ function buildCloudConfig(values) {
 
 function setStationDownloadBusy(busy) {
   elements.downloadCompletePackage.disabled = busy;
+  elements.downloadKeyBundle.disabled = busy;
 }
 
 function downloadBlob(blob, filename) {
@@ -577,7 +586,7 @@ async function downloadCompleteStationPackage(stationValues, cloudValues) {
         "站點：首次啟動時設定",
         "1. 將整個資料夾解壓縮。",
         "2. 保持 station.json 與 cloud.config 在 scan_point.exe 同一資料夾。",
-        "3. 第一次執行 scan_point.exe 時，依畫面要求設定站點編號與名稱。",
+        "3. 第一次執行 scan_point.exe 時，依畫面要求設定站點編號、名稱與管理 PIN。",
         "",
         "cloud.config 包含試算表 ID 與上傳金鑰，請勿公開分享。",
       ].join("\r\n"),
@@ -626,6 +635,8 @@ async function downloadOfflinePackage() {
     setStationDownloadBusy(false);
   }
 }
+
+elements.downloadKeyBundle.addEventListener("click", downloadCompleteKeyBundle);
 
 elements.stationForm.addEventListener("submit", async (event) => {
   event.preventDefault();

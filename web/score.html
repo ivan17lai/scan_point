@@ -18,7 +18,7 @@
         </a>
         <nav class="topbar__nav" aria-label="網站導覽">
           <a href="index.html">首頁</a>
-          <a href="index.html#architecture">專案架構</a>
+          <a href="index.html#station">系統介紹</a>
           <a href="deploy.html">部署教學</a>
           <a href="score.html" aria-current="page">成績計算</a>
         </nav>
@@ -42,8 +42,8 @@
                 </div>
               </div>
               <p>
-                讀取 Google 試算表，或一次匯入多個站點的 CSV、JSON、JSONL。
-                成功辨識到有效紀錄後，右側第二步才會解鎖。
+                雲端資料請上傳完整鑰匙檔，或手動填入 Apps Script 網址與 READ_KEY；
+                也可以一次匯入多個站點的 CSV、JSON、JSONL。
               </p>
             </div>
 
@@ -53,6 +53,17 @@
                   <span class="source-icon" aria-hidden="true">☁</span>
                   <div><small>ONLINE</small><h2>Google 試算表</h2></div>
                 </div>
+                <p class="score-source-instruction">
+                  選擇一種方式取得雲端資料：上傳完整鑰匙檔，或手動填入下方兩個欄位。
+                </p>
+                <div class="score-key-import">
+                  <label for="score-key-file">
+                    上傳完整鑰匙檔
+                    <input id="score-key-file" type="file" accept=".json,application/json">
+                  </label>
+                  <span id="score-key-file-status" role="status">請選擇 scanpoint-keys.json，自動帶入網址與 READ_KEY</span>
+                </div>
+                <div class="score-source-divider"><span>或手動填入</span></div>
                 <label class="field field--wide">
                   <span>Apps Script 正式網址</span>
                   <input id="score-cloud-url" type="url"
@@ -63,15 +74,8 @@
                   <span>READ_KEY</span>
                   <input id="score-read-key" type="password"
                     placeholder="部署頁產生的唯讀金鑰" autocomplete="off">
-                  <small>可以直接輸入，或上傳部署頁下載的金鑰備份；內容只在此頁記憶體中使用。</small>
+                  <small>網址與金鑰只在此頁記憶體中使用，不會儲存在瀏覽器。</small>
                 </label>
-                <div class="score-key-import">
-                  <label for="score-key-file">
-                    上傳金鑰備份
-                    <input id="score-key-file" type="file" accept=".json,application/json">
-                  </label>
-                  <span id="score-key-file-status" role="status">選填 · 只會帶入 READ_KEY</span>
-                </div>
                 <button class="button button--primary" id="load-cloud" type="button">
                   讀取 Google 試算表
                 </button>
@@ -193,8 +197,8 @@
               <p>完成前兩個步驟後，排名會顯示在這裡。</p>
             </div>
 
-            <div class="result-table-wrap">
-              <table class="result-table" id="score-result-table" hidden>
+            <div class="result-table-wrap" id="score-result-view" hidden>
+              <table class="result-table" id="score-result-table">
                 <thead>
                   <tr>
                     <th>名次</th>

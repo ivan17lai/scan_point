@@ -17,14 +17,10 @@
         </a>
         <nav class="topbar__nav" aria-label="網站導覽">
           <a href="index.html">首頁</a>
-          <a href="index.html#features">系統特色</a>
-          <a href="index.html#architecture">專案架構</a>
+          <a href="index.html#station">系統介紹</a>
           <a href="deploy.html" aria-current="page">部署教學</a>
           <a href="score.html">成績計算</a>
         </nav>
-        <a class="topbar__action" href="#deploy-overview">
-          選擇版本 <span aria-hidden="true">↓</span>
-        </a>
       </div>
     </header>
 
@@ -208,14 +204,6 @@
             </div>
           </div>
 
-          <div class="key-backup-row">
-            <button class="button button--quiet" id="download-key-backup" type="button">
-              下載並保存金鑰檔（必要）
-            </button>
-            <p id="key-backup-status" class="status" role="status">
-              重要：這是唯一包含完整讀取與上傳金鑰的備份。請務必保存，且不要公開分享。
-            </p>
-          </div>
           <p class="callout" id="key-mode-summary">
             請先完成試算表連結並選擇設定方式。完成後，第 1 步會自動準備
             對應的完整程式碼。
@@ -336,11 +324,11 @@
           <p class="section-copy" data-cloud-only>
             網頁會取得 GitHub 上最新建置完成的 ScanPoint Windows 軟體，並只在你的瀏覽器中加入預設的
             <code>station.json</code> 與已設定完成的 <code>cloud.config</code>。後者包含試算表 ID、正式網址與上傳金鑰，內容不會上傳到 GitHub。
-            第一次啟動軟體時，畫面會要求你設定這台電腦的站點編號與名稱。
+            第一次啟動軟體時，畫面會要求你設定這台電腦的站點編號、名稱與管理 PIN。
           </p>
           <p class="section-copy" data-offline-only hidden>
             直接下載最新的 ScanPoint Windows 軟體，不加入 <code>cloud.config</code>、試算表 ID 或任何金鑰。
-            第一次啟動時只需要設定站點編號與名稱，之後所有掃描資料都保存在本機並可手動匯出。
+            第一次啟動時只需要設定站點編號、名稱與管理 PIN，之後所有掃描資料都保存在本機並可手動匯出。
           </p>
 
           <form id="station-form" novalidate>
@@ -348,9 +336,17 @@
               <button id="download-complete-package" class="button button--accent" type="submit">
                 <span data-download-button-label>下載含雲端配置的 Windows 軟體</span> <span aria-hidden="true">↓</span>
               </button>
+              <button id="download-key-bundle" class="button button--required-download" type="button" data-cloud-only>
+                下載鑰匙檔 <span aria-hidden="true">↓</span>
+              </button>
               <p id="form-status" class="status" role="status" aria-live="polite"></p>
             </div>
           </form>
+          <p class="callout callout--compact callout--key" data-cloud-only>
+            <strong>重要：這是必要檔案，完成部署後請務必下載並安全保存。</strong><br>
+            鑰匙檔包含 Apps Script 正式網址、試算表 ID 與讀寫金鑰。不要放進掃描站資料夾，
+            也不要公開分享；成績計算時只需匯入這一個檔案。
+          </p>
         </section>
 
         <section id="deploy-finish" class="finish-card" aria-labelledby="finish-title">
@@ -365,7 +361,7 @@
             <li>把下載的 ZIP 解壓縮到這台 Windows 電腦，不要直接在壓縮檔內執行。</li>
             <li data-cloud-only>資料夾內會有 <code>scan_point.exe</code>、<code>station.json</code> 與 <code>cloud.config</code>；請保持三者在同一層。</li>
             <li data-offline-only hidden>離線版不包含 <code>cloud.config</code> 或任何金鑰；解壓縮後直接執行 <code>scan_point.exe</code>。</li>
-            <li>第一次執行 <code>scan_point.exe</code> 時，依畫面要求設定這台電腦的站點編號與名稱；不同掃描站請使用不同編號。</li>
+            <li>第一次執行 <code>scan_point.exe</code> 時，依畫面要求設定這台電腦的站點編號、名稱與管理 PIN；不同掃描站請使用不同編號。</li>
             <li data-cloud-only><code>scanpoint-keys.json</code> 是管理與成績計算用的完整金鑰備份，請另外放在安全位置，不必放進掃描站資料夾。</li>
             <li data-offline-only hidden>需要集中統計時，從掃描站設定介面匯出紀錄，再帶到計分電腦處理。</li>
           </ol>
