@@ -186,6 +186,18 @@ code {
   z-index: 2;
 }
 
+.hero__copy h1 {
+  /* The copy column stops growing once the shell reaches 1180px while the
+     6rem default keeps scaling, so on a wide screen the heading no longer
+     fits and breaks mid-word. The cap is what a seven-glyph line occupies
+     in that column. */
+  font-size: clamp(3.2rem, 6.4vw, 4.6rem);
+  /* Chinese may break between any two characters, which is what split the
+     word rather than the phrase. This heading carries its own <br>, so that
+     break and punctuation are the only ones wanted. */
+  word-break: keep-all;
+}
+
 .eyebrow,
 .section-kicker {
   margin: 0 0 12px;
@@ -911,6 +923,12 @@ a:focus-visible {
 
   h1 {
     font-size: clamp(2.8rem, 14vw, 4.4rem);
+  }
+
+  .hero__copy h1 {
+    /* keep-all lets an oversized line overflow instead of wrapping, so the
+       phone size has to fit the longest line outright — down to 320px. */
+    font-size: clamp(2.2rem, 11vw, 4.4rem);
   }
 
   .hero__actions {
