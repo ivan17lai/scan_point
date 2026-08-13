@@ -424,6 +424,28 @@
   font-weight: 600;
 }
 
+.station-chip--draggable {
+  cursor: grab;
+  user-select: none;
+  transition: opacity 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+.station-chip--draggable:hover,
+.station-chip--draggable:focus-visible {
+  box-shadow: 0 5px 14px rgba(73, 39, 99, 0.18);
+  outline: 2px solid transparent;
+  transform: translateY(-2px);
+}
+
+.station-chip--draggable:active {
+  cursor: grabbing;
+}
+
+.station-chip--draggable.is-dragging {
+  opacity: 0.48;
+  box-shadow: 0 8px 20px rgba(73, 39, 99, 0.24);
+}
+
 .loaded-stations {
   padding: clamp(20px, 3vw, 30px);
   background: rgba(255, 255, 255, 0.5);

@@ -54,6 +54,8 @@ let activeStep = 1;
 let dataReady = false;
 let resultReady = false;
 let idDisplayMapping = new Map();
+let detectedStations = [];
+let draggedStationChip = null;
 
 function setStatus(element, message, tone = "") {
   element.textContent = message;
@@ -116,6 +118,7 @@ function describeLoaded(records, source, issues = []) {
   }
 
   sourceRecords = records;
+  detectedStations = stations;
   sourceDescription = source;
   dataReady = true;
   resultReady = false;
@@ -160,6 +163,7 @@ function describeLoaded(records, source, issues = []) {
 
 function reopenDataUpload() {
   sourceRecords = [];
+  detectedStations = [];
   sourceDescription = "尚未載入";
   dataReady = false;
   resultReady = false;
@@ -199,7 +203,18 @@ function renderStationChips(
   stations.forEach((station, index) => {
     const chip = document.createElement("span");
     chip.className = "station-chip";
-    chip.draggable = false;
+    const canReorder = target === elements.stationChips;
+    chip.draggable = canReorder;
+    chip.dataset.stationId = station.id;
+    if (canReorder) {
+      chip.classList.add("station-chip--draggable");
+      chip.tabIndex = 0;
+      chip.setAttribute("role", "listitem");
+      chip.setAttribute(
+        "aria-label",
+        station.id + "，目前第 " + (index + 1) + " 站；可拖動或使用左右方向鍵排序",
+      );
+    }
     const number = document.createElement("b");
     number.textContent = String(index + 1).padStart(2, "0");
     const label = document.createElement("span");
@@ -214,6 +229,45 @@ function renderStationChips(
     }
     target.append(chip);
   });
+}
+
+function updateStationChipNumbers() {
+  elements.stationChips
+    .querySelectorAll(".station-chip[data-station-id]")
+    .forEach((chip, index) => {
+      chip.querySelector("b").textContent = String(index + 1).padStart(2, "0");
+      chip.setAttribute(
+        "aria-label",
+        chip.dataset.stationId + "，目前第 " + (index + 1) + " 站；可拖動或使用左右方向鍵排序",
+      );
+    });
+}
+
+function commitStationChipOrder() {
+  const ids = Array.from(
+    elements.stationChips.querySelectorAll(
+      ".station-chip[data-station-id]",
+    ),
+    (chip) => chip.dataset.stationId,
+  );
+  elements.stationOrder.value = ids.join(", ");
+  updateStationChipNumbers();
+  invalidateResults();
+  setStatus(
+    elements.ruleStatus,
+    "站點順序已更新：" + ids.join(" → "),
+    "success",
+  );
+}
+
+function syncStationChipsFromInput() {
+  const ids = engine.parseStationOrder(elements.stationOrder.value);
+  if (ids.length !== detectedStations.length) return;
+  const stationById = new Map(
+    detectedStations.map((station) => [station.id, station]),
+  );
+  if (ids.some((id) => !stationById.has(id))) return;
+  renderStationChips(ids.map((id) => stationById.get(id)));
 }
 
 function resetResults() {
@@ -623,6 +677,55 @@ elements.idMappingFile.addEventListener("change", () =>
 elements.clearIdMapping.addEventListener("click", clearIdMapping);
 elements.calculate.addEventListener("click", calculateScore);
 elements.stationOrder.addEventListener("input", invalidateResults);
+elements.stationOrder.addEventListener("change", syncStationChipsFromInput);
+elements.stationChips.addEventListener("dragstart", (event) => {
+  const chip = event.target.closest(".station-chip[data-station-id]");
+  if (!chip) return;
+  draggedStationChip = chip;
+  chip.classList.add("is-dragging");
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData("text/plain", chip.dataset.stationId);
+});
+elements.stationChips.addEventListener("dragover", (event) => {
+  const target = event.target.closest(".station-chip[data-station-id]");
+  if (!draggedStationChip || !target || target === draggedStationChip) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "move";
+  const rect = target.getBoundingClientRect();
+  const insertAfter = event.clientX > rect.left + rect.width / 2;
+  elements.stationChips.insertBefore(
+    draggedStationChip,
+    insertAfter ? target.nextSibling : target,
+  );
+});
+elements.stationChips.addEventListener("drop", (event) => {
+  if (draggedStationChip) event.preventDefault();
+});
+elements.stationChips.addEventListener("dragend", () => {
+  if (!draggedStationChip) return;
+  draggedStationChip.classList.remove("is-dragging");
+  commitStationChipOrder();
+  draggedStationChip.focus();
+  draggedStationChip = null;
+});
+elements.stationChips.addEventListener("keydown", (event) => {
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  const chip = event.target.closest(".station-chip[data-station-id]");
+  if (!chip) return;
+  const sibling =
+    event.key === "ArrowLeft"
+      ? chip.previousElementSibling
+      : chip.nextElementSibling;
+  if (!sibling) return;
+  event.preventDefault();
+  if (event.key === "ArrowLeft") {
+    elements.stationChips.insertBefore(chip, sibling);
+  } else {
+    elements.stationChips.insertBefore(sibling, chip);
+  }
+  commitStationChipOrder();
+  chip.focus();
+});
 elements.search.addEventListener("input", renderResults);
 elements.exportButton.addEventListener("click", exportResults);
 elements.backToRules.addEventListener("click", () => goToStep(2));

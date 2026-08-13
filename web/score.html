@@ -168,9 +168,10 @@
                 <span>站點順序</span>
                 <input id="station-order" type="text"
                   placeholder="CP01, CP02, CP03, CP04" autocomplete="off">
-                <small>使用逗號或換行分隔；順序錯誤的刷卡不會算進已完成站點。</small>
+                <small id="station-order-help">拖動下方站點調整順序，也可使用逗號或換行手動輸入；順序錯誤的刷卡不會算進已完成站點。</small>
               </label>
-              <div class="station-chips" id="station-chips" aria-label="辨識到的站點"></div>
+              <div class="station-chips" id="station-chips" role="list"
+                aria-label="可拖動排序的站點" aria-describedby="station-order-help"></div>
 
               <div class="score-rule-note">
                 <span aria-hidden="true">i</span>
