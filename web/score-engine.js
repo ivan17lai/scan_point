@@ -147,11 +147,12 @@
   function inferStations(records) {
     const names = new Map();
     for (const record of normalizeRecords(records)) {
-      if (!names.has(record.stationId) || !names.get(record.stationId)) {
-        names.set(record.stationId, record.stationName);
-      }
+      const station = names.get(record.stationId) || {name: "", count: 0};
+      if (!station.name && record.stationName) station.name = record.stationName;
+      station.count += 1;
+      names.set(record.stationId, station);
     }
-    return Array.from(names, ([id, name]) => ({id, name}))
+    return Array.from(names, ([id, station]) => ({id, ...station}))
       .sort((left, right) =>
         left.id.localeCompare(right.id, "zh-Hant", {
           numeric: true,

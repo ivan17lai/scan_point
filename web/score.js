@@ -120,7 +120,7 @@ function describeLoaded(records, source, issues = []) {
   elements.sourceLabel.textContent = source;
   elements.stationOrder.value = stations.map((station) => station.id).join(", ");
   renderStationChips(stations);
-  renderStationChips(stations, elements.loadedStationList, false);
+  renderStationChips(stations, elements.loadedStationList, false, true);
   resetResults();
   updateStepAccess();
   elements.dataUnlockHint.textContent = "第二步已解鎖";
@@ -175,7 +175,12 @@ function reopenDataUpload() {
   goToStep(1);
 }
 
-function renderStationChips(stations, target = elements.stationChips, showEmpty = true) {
+function renderStationChips(
+  stations,
+  target = elements.stationChips,
+  showEmpty = true,
+  showCount = false,
+) {
   target.replaceChildren();
   if (!stations.length) {
     if (!showEmpty) return;
@@ -196,6 +201,11 @@ function renderStationChips(stations, target = elements.stationChips, showEmpty 
       ? `${station.id} · ${station.name}`
       : station.id;
     chip.append(number, label);
+    if (showCount) {
+      const count = document.createElement("small");
+      count.textContent = `${station.count} 筆資料`;
+      chip.append(count);
+    }
     target.append(chip);
   });
 }

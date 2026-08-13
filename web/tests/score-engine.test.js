@@ -63,6 +63,25 @@ test("inferStations uses natural station id ordering", () => {
     stations.map((station) => station.id),
     ["CP1", "CP2", "CP10"],
   );
+  assert.deepEqual(
+    stations.map((station) => station.count),
+    [1, 1, 1],
+  );
+});
+("inferStations counts valid scan records for each checkpoint", () => {
+  const stations = engine.inferStations([
+    scan("A", "CP1", "2026-08-10T01:00:00Z"),
+    scan("B", "CP1", "2026-08-10T01:01:00Z"),
+    scan("A", "CP2", "2026-08-10T01:02:00Z"),
+  ]);
+
+  assert.deepEqual(
+    stations.map(({id, count}) => ({id, count})),
+    [
+      {id: "CP1", count: 2},
+      {id: "CP2", count: 1},
+    ],
+  );
 });
 
 test("a torn final line keeps the records written before it", () => {

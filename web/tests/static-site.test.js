@@ -67,11 +67,24 @@ test("successful data loading can be reset for another upload", () => {
   assert.match(html, /id="reload-data"[^>]*hidden>重新上傳<\/button>/);
   assert.match(script, /elements\.sourceGrid\.hidden = true/);
   assert.match(script, /elements\.loadedView\.hidden = false/);
-  assert.match(script, /renderStationChips\(stations, elements\.loadedStationList, false\)/);
+  assert.match(script, /renderStationChips\(stations, elements\.loadedStationList, false, true\)/);
+  assert.match(script, /count\.textContent = `\$\{station\.count\} 筆資料`/);
   assert.match(script, /elements\.reloadData\.hidden = false/);
   assert.match(script, /function reopenDataUpload\(\)/);
   assert.match(script, /elements\.reloadData\.addEventListener\("click", reopenDataUpload\)/);
 });
+test("hidden score panels always stay hidden after data is loaded", () => {
+  const css = fs.readFileSync(path.join(webRoot, "score.css"), "utf8");
+  assert.match(
+    css,
+    /\.score-app\[data-data-ready="true"\] \.score-card--data:not\(\[hidden\]\)/,
+  );
+  assert.doesNotMatch(
+    css,
+    /\.score-app\[data-data-ready="true"\] \.score-card--data\s*\{/,
+  );
+});
+
 test("every direct ID selector used by page scripts exists in its HTML", () => {
   for (const [scriptName, htmlName] of [
     ["app.js", "deploy.html"],
