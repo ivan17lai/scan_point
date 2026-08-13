@@ -45,6 +45,12 @@ test("every page refreshes stale deployments and versions static assets", () => 
   }
 });
 
+test("homepage hero places copy before the map on desktop", () => {
+  const css = fs.readFileSync(path.join(webRoot, "styles.css"), "utf8");
+  assert.match(css, /\.hero__copy \{[\s\S]*?grid-column: 1;[\s\S]*?\}/);
+  assert.match(css, /\.hero__visual \{[\s\S]*?grid-column: 2;[\s\S]*?\}/);
+});
+
 test("score data sources have a non-overlapping OR separator", () => {
   const html = fs.readFileSync(path.join(webRoot, "score.html"), "utf8");
   const css = fs.readFileSync(path.join(webRoot, "score.css"), "utf8");
