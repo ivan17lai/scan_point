@@ -88,6 +88,23 @@ test("successful data loading can be reset for another upload", () => {
   assert.match(script, /function reopenDataUpload\(\)/);
   assert.match(script, /elements\.reloadData\.addEventListener\("click", reopenDataUpload\)/);
 });
+test("score page accepts an optional ID mapping for display and export", () => {
+  const html = fs.readFileSync(path.join(webRoot, "score.html"), "utf8");
+  const script = fs.readFileSync(path.join(webRoot, "score.js"), "utf8");
+  const css = fs.readFileSync(path.join(webRoot, "score.css"), "utf8");
+  assert.match(html, /id="score-id-mapping-file"/);
+  assert.match(html, /examples\/id-mapping-example\.csv/);
+  assert.match(html, /只會改變排名顯示與匯出內容/);
+  assert.match(script, /deploymentCore\.normalizeIdMapping/);
+  assert.match(script, /idDisplayMapping = new Map/);
+  assert.match(script, /function displayCardId\(cardId\)/);
+  assert.match(script, /\[participant\.cardId, displayCardId\(participant\.cardId\)\]/);
+  assert.match(script, /"display_text"/);
+  assert.match(script, /originalId\.textContent = participant\.cardId/);
+  assert.match(css, /\.score-id-mapping \{/);
+  assert.match(css, /\.card-id-original \{/);
+});
+
 test("hidden score panels always stay hidden after data is loaded", () => {
   const css = fs.readFileSync(path.join(webRoot, "score.css"), "utf8");
   assert.match(

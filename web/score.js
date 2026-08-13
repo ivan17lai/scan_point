@@ -2,6 +2,7 @@
 
 const engine = window.ScanPointScoreEngine;
 const scoreConfig = window.ScanPointScoreConfig;
+const deploymentCore = window.ScanPointDeploymentCore;
 
 const elements = {
   app: document.querySelector("#score-app"),
@@ -20,6 +21,9 @@ const elements = {
   reloadData: document.querySelector("#reload-data"),
   loadedView: document.querySelector("#loaded-data-view"),
   loadedStationList: document.querySelector("#loaded-station-list"),
+  idMappingFile: document.querySelector("#score-id-mapping-file"),
+  idMappingStatus: document.querySelector("#score-id-mapping-status"),
+  clearIdMapping: document.querySelector("#clear-score-id-mapping"),
   dataStatus: document.querySelector("#score-data-status"),
   dataUnlockHint: document.querySelector("#data-unlock-hint"),
   goToRules: document.querySelector("#go-to-rules"),
@@ -49,6 +53,7 @@ let sourceDescription = "尚未載入";
 let activeStep = 1;
 let dataReady = false;
 let resultReady = false;
+let idDisplayMapping = new Map();
 
 function setStatus(element, message, tone = "") {
   element.textContent = message;
@@ -277,6 +282,65 @@ async function importKeyBackup(file) {
   }
 }
 
+function idMappingErrorMessage(error) {
+  const messages = {
+    ID_MAPPING_TOO_LARGE: "檔案超過 2 MB，請縮小後再試。",
+    ID_MAPPING_EMPTY: "檔案中沒有可用的對照資料。",
+    ID_MAPPING_TOO_MANY: "對照資料超過 10,000 筆。",
+    ID_MAPPING_HEADER_INVALID: "CSV 第一列需要包含 id 與 text 欄位。",
+    ID_MAPPING_JSON_INVALID: "JSON 格式無法解析。",
+    ID_MAPPING_QUOTES_INVALID: "CSV 引號格式不完整。",
+    ID_MAPPING_ENTRY_INVALID: "每一筆都需要 NFC ID 與顯示文字。",
+    ID_MAPPING_ENTRY_TOO_LONG: "NFC ID 或顯示文字過長。",
+    ID_MAPPING_DUPLICATE: "檔案中有重複的 NFC ID。",
+  };
+  return messages[error.message] || error.message || "無法辨識此檔案";
+}
+
+async function importIdMapping(file) {
+  if (!file) return;
+  elements.idMappingFile.disabled = true;
+  try {
+    const normalized = deploymentCore.normalizeIdMapping(
+      await file.text(),
+      file.name,
+    );
+    idDisplayMapping = new Map(
+      normalized.entries.map((entry) => [entry.id, entry.text]),
+    );
+    setStatus(
+      elements.idMappingStatus,
+      `已載入 ${normalized.entries.length} 筆對照，排名將顯示自訂文字。`,
+      "success",
+    );
+    elements.clearIdMapping.hidden = false;
+    if (scoreResult) renderResults();
+  } catch (error) {
+    setStatus(
+      elements.idMappingStatus,
+      `對照表讀取失敗：${idMappingErrorMessage(error)}`,
+      "error",
+    );
+  } finally {
+    elements.idMappingFile.disabled = false;
+    elements.idMappingFile.value = "";
+  }
+}
+
+function clearIdMapping() {
+  idDisplayMapping = new Map();
+  elements.clearIdMapping.hidden = true;
+  setStatus(
+    elements.idMappingStatus,
+    "尚未上傳，排名會顯示原始 NFC ID。",
+  );
+  if (scoreResult) renderResults();
+}
+
+function displayCardId(cardId) {
+  return idDisplayMapping.get(cardId) || cardId;
+}
+
 function loadCloudJsonp(endpoint) {
   return new Promise((resolve, reject) => {
     const bytes = new Uint8Array(8);
@@ -409,7 +473,10 @@ function renderResults() {
   if (!scoreResult) return;
   const query = elements.search.value.trim().toLocaleLowerCase("zh-Hant");
   const participants = scoreResult.participants.filter((participant) =>
-    participant.cardId.toLocaleLowerCase("zh-Hant").includes(query),
+    [participant.cardId, displayCardId(participant.cardId)]
+      .join(" ")
+      .toLocaleLowerCase("zh-Hant")
+      .includes(query),
   );
 
   elements.resultBody.replaceChildren();
@@ -427,11 +494,20 @@ function renderResults() {
     rankCell.append(rank);
 
     const cardCell = document.createElement("td");
-    cardCell.dataset.label = "卡號";
+    cardCell.dataset.label = "選手";
+    cardCell.className = "card-id-cell";
     const card = document.createElement("strong");
     card.className = "card-id";
-    card.textContent = participant.cardId;
+    const displayText = displayCardId(participant.cardId);
+    card.textContent = displayText;
+    card.classList.toggle("card-id--mapped", displayText !== participant.cardId);
     cardCell.append(card);
+    if (displayText !== participant.cardId) {
+      const originalId = document.createElement("small");
+      originalId.className = "card-id-original";
+      originalId.textContent = participant.cardId;
+      cardCell.append(originalId);
+    }
 
     const statusCell = document.createElement("td");
     statusCell.dataset.label = "狀態";
@@ -491,6 +567,7 @@ function exportResults() {
     [
       "rank",
       "card_id",
+      "display_text",
       "status",
       "progress",
       "elapsed",
@@ -501,6 +578,7 @@ function exportResults() {
     ...scoreResult.participants.map((participant) => [
       participant.rank ?? "",
       participant.cardId,
+      displayCardId(participant.cardId),
       participant.complete ? "complete" : "incomplete",
       `${participant.progress}/${participant.totalStations}`,
       engine.formatDuration(participant.elapsedMs),
@@ -539,6 +617,10 @@ elements.keyFile.addEventListener("change", () =>
 elements.fileInput.addEventListener("change", () =>
   loadFiles(elements.fileInput.files),
 );
+elements.idMappingFile.addEventListener("change", () =>
+  importIdMapping(elements.idMappingFile.files[0]),
+);
+elements.clearIdMapping.addEventListener("click", clearIdMapping);
 elements.calculate.addEventListener("click", calculateScore);
 elements.stationOrder.addEventListener("input", invalidateResults);
 elements.search.addEventListener("input", renderResults);

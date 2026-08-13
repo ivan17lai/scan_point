@@ -474,6 +474,65 @@
   white-space: nowrap;
 }
 
+.score-id-mapping {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  padding: clamp(20px, 3vw, 28px);
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 28px 10px 28px 28px;
+}
+
+.score-id-mapping__copy h2 {
+  margin: 3px 0 8px;
+  color: var(--md-sys-color-on-primary-container);
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+}
+
+.score-id-mapping__copy > p:not(.section-kicker, .status) {
+  max-width: 680px;
+  margin: 0;
+  color: var(--md-sys-color-on-surface-variant);
+  line-height: 1.65;
+}
+
+.score-id-mapping__status {
+  margin: 12px 0 0;
+  font-size: 0.8rem;
+}
+
+.score-id-mapping__actions {
+  display: flex;
+  max-width: 330px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.score-id-mapping__actions .button {
+  min-height: 44px;
+  padding-inline: 17px;
+}
+
+.score-id-mapping__actions .button[hidden] {
+  display: none;
+}
+
+.score-id-mapping__picker {
+  position: relative;
+  cursor: pointer;
+}
+
+.score-id-mapping__picker input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 .score-rule-note {
   display: grid;
   grid-template-columns: 38px 1fr;
@@ -861,6 +920,23 @@
   font-family: "Roboto Mono", "Cascadia Code", monospace;
 }
 
+.card-id {
+  display: block;
+}
+
+.card-id--mapped {
+  font-family: inherit;
+}
+
+.card-id-original {
+  display: block;
+  margin-top: 4px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-family: "Roboto Mono", "Cascadia Code", monospace;
+  font-size: 0.7rem;
+  font-weight: 550;
+}
+
 .duration-cell {
   font-size: 0.92rem;
   font-weight: 800;
@@ -985,6 +1061,19 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 6px;
+  }
+
+  .score-id-mapping {
+    grid-template-columns: 1fr;
+  }
+
+  .score-id-mapping__actions {
+    max-width: none;
+    justify-content: stretch;
+  }
+
+  .score-id-mapping__actions .button {
+    flex: 1 1 150px;
   }
 
   .score-panel__footer,

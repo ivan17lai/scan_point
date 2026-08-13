@@ -118,6 +118,22 @@
                 </div>
                 <div class="loaded-station-list" id="loaded-station-list"></div>
               </section>
+              <section class="score-id-mapping" aria-labelledby="score-id-mapping-title">
+                <div class="score-id-mapping__copy">
+                  <p class="section-kicker">Optional ID mapping</p>
+                  <h2 id="score-id-mapping-title">上傳選手對照表</h2>
+                  <p>把 NFC ID 轉換為姓名、隊名等文字訊息。只會改變排名顯示與匯出內容，不會改動原始掃描資料或計分結果。</p>
+                  <p class="status score-id-mapping__status" id="score-id-mapping-status" role="status">尚未上傳，排名會顯示原始 NFC ID。</p>
+                </div>
+                <div class="score-id-mapping__actions">
+                  <label class="button button--quiet score-id-mapping__picker" for="score-id-mapping-file">
+                    上傳對照表
+                    <input id="score-id-mapping-file" type="file" accept=".csv,.tsv,.json">
+                  </label>
+                  <a class="button button--quiet" href="examples/id-mapping-example.csv" download>下載範例檔</a>
+                  <button class="button button--quiet" id="clear-score-id-mapping" type="button" hidden>移除對照表</button>
+                </div>
+              </section>
             </div>
             <div class="score-panel__footer">
               <p class="status score-status" id="score-data-status" role="status">
@@ -221,7 +237,7 @@
                 <thead>
                   <tr>
                     <th>名次</th>
-                    <th>卡號</th>
+                    <th>選手</th>
                     <th>狀態</th>
                     <th>成績</th>
                     <th>起點時間</th>
@@ -264,6 +280,7 @@
 
     <script src="score-engine.js?v=__SCANPOINT_VERSION__"></script>
     <script src="score-config.js?v=__SCANPOINT_VERSION__"></script>
+    <script src="deployment-core.js?v=__SCANPOINT_VERSION__"></script>
     <script src="score.js?v=__SCANPOINT_VERSION__"></script>
   </body>
 </html>
