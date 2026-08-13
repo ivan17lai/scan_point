@@ -51,6 +51,15 @@ test("homepage hero places copy before the map on desktop", () => {
   assert.match(css, /\.hero__visual \{[\s\S]*?grid-column: 2;[\s\S]*?\}/);
 });
 
+test("score setup panels fit their content and station chips do not drag", () => {
+  const css = fs.readFileSync(path.join(webRoot, "score.css"), "utf8");
+  const script = fs.readFileSync(path.join(webRoot, "score.js"), "utf8");
+  assert.match(css, /\.step-card\.score-panel \{[\s\S]*?height: fit-content;[\s\S]*?max-height: 100%;/);
+  assert.match(css, /\.score-results \{[\s\S]*?height: 100%;/);
+  assert.doesNotMatch(css.match(/\.rule-workspace \{[\s\S]*?\}/)[0], /min-height:/);
+  assert.match(script, /chip\.draggable = false/);
+});
+
 test("score data sources have a non-overlapping OR separator", () => {
   const html = fs.readFileSync(path.join(webRoot, "score.html"), "utf8");
   const css = fs.readFileSync(path.join(webRoot, "score.css"), "utf8");

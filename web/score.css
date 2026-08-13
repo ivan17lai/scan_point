@@ -50,6 +50,8 @@
 }
 
 .step-card.score-panel {
+  height: fit-content;
+  max-height: 100%;
   padding: clamp(28px, 4vw, 48px);
 }
 
@@ -382,8 +384,7 @@
 
 .rule-workspace {
   display: grid;
-  min-height: calc(100% - 190px);
-  align-content: center;
+  align-content: start;
 }
 
 .station-chips {
@@ -653,6 +654,7 @@
 
 .score-results {
   display: flex;
+  height: 100%;
   min-height: 0;
   flex-direction: column;
   padding: clamp(24px, 3vw, 42px);

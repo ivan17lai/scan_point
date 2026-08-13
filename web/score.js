@@ -194,6 +194,7 @@ function renderStationChips(
   stations.forEach((station, index) => {
     const chip = document.createElement("span");
     chip.className = "station-chip";
+    chip.draggable = false;
     const number = document.createElement("b");
     number.textContent = String(index + 1).padStart(2, "0");
     const label = document.createElement("span");
