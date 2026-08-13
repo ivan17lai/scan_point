@@ -102,7 +102,9 @@ test("score page accepts an optional ID mapping for display and export", () => {
   assert.match(script, /"display_text"/);
   assert.match(script, /originalId\.textContent = participant\.cardId/);
   assert.match(css, /\.score-id-mapping \{/);
-  assert.match(css, /\.card-id-original \{/);
+  assert.ok(css.includes(".card-id-original {"));
+  assert.ok(css.includes("grid-template-rows: auto auto auto;"));
+  assert.ok(css.includes("align-self: start;"));
 });
 
 test("hidden score panels always stay hidden after data is loaded", () => {
