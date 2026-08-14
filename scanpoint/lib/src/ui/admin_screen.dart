@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../app_controller.dart';
 import '../audio/tone_player.dart';
 import '../model/scan_record.dart';
+import '../model/station_setup_validator.dart';
 import '../platform/kiosk_lock.dart';
 import '../storage/event_log.dart';
 import '../upload/apps_script_uploader.dart';
@@ -72,6 +73,16 @@ class _AdminScreenState extends State<AdminScreen> {
       setState(() => _status = 'PIN 至少要 4 位數字');
       return;
     }
+    // Only the character set is checked here. An empty field still falls back
+    // to the placeholder id below, as it always has.
+    final stationId = _stationId.text.trim();
+    if (stationId.isNotEmpty) {
+      final stationIdError = StationSetupValidator.validateStationId(stationId);
+      if (stationIdError != null) {
+        setState(() => _status = stationIdError);
+        return;
+      }
+    }
     final spreadsheetId = _spreadsheetId.text.trim();
     final uploadUrl = _uploadUrl.text.trim();
     final uploadToken = _uploadToken.text.trim();
@@ -99,9 +110,7 @@ class _AdminScreenState extends State<AdminScreen> {
     final current = widget.controller.config;
     await widget.controller.updateConfig(
       current.copyWith(
-        stationId: _stationId.text.trim().isEmpty
-            ? 'CP1'
-            : _stationId.text.trim(),
+        stationId: stationId.isEmpty ? 'CP1' : stationId,
         stationName: _stationName.text.trim().isEmpty
             ? '未命名站點'
             : _stationName.text.trim(),

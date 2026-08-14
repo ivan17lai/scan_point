@@ -68,7 +68,8 @@ test("inferStations uses natural station id ordering", () => {
     [1, 1, 1],
   );
 });
-("inferStations counts valid scan records for each checkpoint", () => {
+
+test("inferStations counts valid scan records for each checkpoint", () => {
   const stations = engine.inferStations([
     scan("A", "CP1", "2026-08-10T01:00:00Z"),
     scan("B", "CP1", "2026-08-10T01:01:00Z"),
@@ -81,6 +82,41 @@ test("inferStations uses natural station id ordering", () => {
       {id: "CP1", count: 2},
       {id: "CP2", count: 1},
     ],
+  );
+});
+
+test("resolveStationOrder mirrors any order the field accepts", () => {
+  const stations = engine.inferStations([
+    scan("A", "CP1", "2026-08-10T01:00:00Z"),
+    scan("A", "CP2", "2026-08-10T01:01:00Z"),
+    scan("A", "CP3", "2026-08-10T01:02:00Z"),
+  ]);
+
+  // A subset in a hand-typed order: what the operator sees has to be what
+  // scoreRecords will use, not the full detected list it used to fall back to.
+  assert.deepEqual(
+    engine.resolveStationOrder("CP3, CP1", stations).map(({id, missing}) => ({id, missing})),
+    [{id: "CP3", missing: false}, {id: "CP1", missing: false}],
+  );
+
+  // A typo'd id stays in the order and is flagged, because it is still scored
+  // — and it makes the course uncompletable, so it must be visible.
+  assert.deepEqual(
+    engine.resolveStationOrder("CP1, CP9", stations).map(({id, missing}) => ({id, missing})),
+    [{id: "CP1", missing: false}, {id: "CP9", missing: true}],
+  );
+  assert.equal(
+    engine.scoreRecords(
+      [scan("A", "CP1", "2026-08-10T01:00:00Z")],
+      engine.parseStationOrder("CP1, CP9"),
+    ).completedCount,
+    0,
+  );
+
+  assert.deepEqual(engine.resolveStationOrder("", stations), []);
+  assert.deepEqual(
+    engine.resolveStationOrder(["CP2"], stations).map(({id, count}) => ({id, count})),
+    [{id: "CP2", count: 1}],
   );
 });
 
