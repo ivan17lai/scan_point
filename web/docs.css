@@ -1,0 +1,524 @@
+/* Architecture documentation page. Shell, header, footer and colour tokens all
+   come from styles.css; everything here is the reading layout itself. */
+
+.docs-page {
+  background: var(--md-sys-color-surface);
+}
+
+.docs-main {
+  padding-bottom: 96px;
+}
+
+/* --- hero ---------------------------------------------------------------- */
+
+.docs-hero {
+  padding-block: 56px 40px;
+}
+
+.docs-hero h1 {
+  max-width: 24ch;
+  margin: 10px 0 0;
+  font-size: clamp(2rem, 4.6vw, 3rem);
+  line-height: 1.14;
+  letter-spacing: -0.02em;
+}
+
+.docs-hero__lead {
+  max-width: 62ch;
+  margin: 20px 0 0;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 1.02rem;
+  line-height: 1.75;
+}
+
+.docs-hero__facts {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-top: 32px;
+}
+
+.docs-hero__facts > div {
+  padding: 18px 20px;
+  background: var(--md-sys-color-surface-container-low);
+  border-radius: 20px;
+}
+
+.docs-hero__facts b {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--md-sys-color-on-primary-container);
+  font-size: 0.95rem;
+}
+
+.docs-hero__facts span {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+/* --- two column layout --------------------------------------------------- */
+
+.docs-layout {
+  display: grid;
+  align-items: start;
+  gap: 48px;
+  grid-template-columns: 208px minmax(0, 1fr);
+}
+
+.docs-nav {
+  position: sticky;
+  top: 104px;
+  padding: 22px 18px;
+  background: var(--md-sys-color-surface-container-low);
+  border-radius: 24px;
+}
+
+.docs-nav__title {
+  margin: 0 0 12px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.docs-nav ol {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.docs-nav a {
+  display: block;
+  padding: 8px 10px;
+  color: var(--md-sys-color-on-surface-variant);
+  border-radius: 999px;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  text-decoration: none;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.docs-nav a:hover,
+.docs-nav a:focus-visible {
+  color: var(--md-sys-color-on-primary-container);
+  background: var(--md-sys-color-primary-container);
+}
+
+.docs-article {
+  min-width: 0;
+}
+
+/* --- sections ------------------------------------------------------------ */
+
+.docs-section {
+  padding-block: 40px;
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.docs-section:first-child {
+  padding-top: 8px;
+  border-top: 0;
+}
+
+.docs-kicker {
+  margin: 0;
+  color: var(--md-sys-color-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.docs-section h2 {
+  margin: 8px 0 18px;
+  font-size: clamp(1.5rem, 2.6vw, 1.95rem);
+  letter-spacing: -0.01em;
+}
+
+.docs-h3 {
+  margin: 34px 0 10px;
+  font-size: 1.05rem;
+}
+
+.docs-section p {
+  max-width: 72ch;
+  color: var(--md-sys-color-on-surface-variant);
+  line-height: 1.8;
+}
+
+.docs-section strong {
+  color: var(--md-sys-color-on-surface);
+}
+
+.docs-section code {
+  padding: 1px 6px;
+  color: var(--md-sys-color-on-primary-container);
+  background: var(--md-sys-color-surface-container-high);
+  border-radius: 6px;
+  font-family: "SFMono-Regular", "Cascadia Mono", "Consolas", monospace;
+  font-size: 0.86em;
+  overflow-wrap: anywhere;
+}
+
+/* --- architecture diagram ------------------------------------------------ */
+
+.arch-figure {
+  margin: 26px 0 30px;
+  padding: 20px;
+  background: var(--md-sys-color-surface-container-low);
+  border-radius: 26px;
+  overflow-x: auto;
+}
+
+.arch-diagram {
+  display: block;
+  width: 100%;
+  min-width: 660px;
+  height: auto;
+}
+
+.arch-band {
+  fill: var(--md-sys-color-on-surface-variant);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.arch-node rect {
+  fill: #ffffff;
+  stroke: var(--md-sys-color-outline-variant);
+  stroke-width: 1.5;
+}
+
+.arch-node--station rect {
+  fill: var(--step-violet);
+  stroke: none;
+}
+
+.arch-node--relay rect {
+  fill: var(--step-blue);
+  stroke: none;
+}
+
+.arch-node--optional rect {
+  fill: var(--md-sys-color-surface-container);
+  stroke: var(--md-sys-color-outline-variant);
+  stroke-dasharray: 7 6;
+  stroke-width: 2;
+}
+
+.arch-node--sink rect {
+  fill: var(--step-peach);
+  stroke: none;
+}
+
+.arch-node__title {
+  fill: var(--md-sys-color-on-surface);
+  font-size: 17px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.arch-node__sub {
+  fill: var(--md-sys-color-on-surface-variant);
+  font-size: 13px;
+  text-anchor: middle;
+}
+
+.arch-line {
+  fill: none;
+  stroke: var(--md-sys-color-outline);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.arch-edge {
+  fill: var(--md-sys-color-on-surface-variant);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* --- tables -------------------------------------------------------------- */
+
+.docs-table-scroll {
+  margin: 22px 0 8px;
+  overflow-x: auto;
+  border-radius: 20px;
+}
+
+.docs-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--md-sys-color-surface-container-low);
+  font-size: 0.88rem;
+}
+
+.docs-table__caption {
+  padding: 14px 20px 0;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.docs-table th,
+.docs-table td {
+  padding: 13px 20px;
+  color: var(--md-sys-color-on-surface-variant);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  line-height: 1.65;
+  text-align: left;
+  vertical-align: top;
+}
+
+.docs-table thead th {
+  color: var(--md-sys-color-on-surface);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.docs-table tbody th {
+  color: var(--md-sys-color-on-surface);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.docs-table tbody tr:last-child th,
+.docs-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* --- numbered lifecycle -------------------------------------------------- */
+
+.lifecycle {
+  display: grid;
+  gap: 14px;
+  margin: 24px 0 8px;
+  padding: 0;
+  counter-reset: lifecycle;
+  list-style: none;
+}
+
+.lifecycle > li {
+  position: relative;
+  padding: 18px 22px 18px 62px;
+  background: var(--md-sys-color-surface-container-low);
+  border-radius: 20px;
+  counter-increment: lifecycle;
+}
+
+.lifecycle > li::before {
+  position: absolute;
+  top: 18px;
+  left: 20px;
+  display: grid;
+  width: 27px;
+  height: 27px;
+  color: var(--md-sys-color-on-primary);
+  background: var(--md-sys-color-primary);
+  border-radius: 50%;
+  content: counter(lifecycle);
+  font-size: 0.76rem;
+  font-weight: 700;
+  place-items: center;
+}
+
+.lifecycle b {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--md-sys-color-on-surface);
+  font-size: 0.98rem;
+}
+
+.lifecycle p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.lifecycle--compact > li {
+  padding-block: 15px;
+}
+
+/* --- callouts ------------------------------------------------------------ */
+
+.docs-callout {
+  margin: 26px 0 8px;
+  padding: 20px 24px;
+  background: var(--step-yellow);
+  border-radius: 20px;
+}
+
+.docs-callout--quiet {
+  background: var(--md-sys-color-secondary-container);
+}
+
+.docs-callout b {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--md-sys-color-on-surface);
+  font-size: 0.98rem;
+}
+
+.docs-callout p {
+  margin: 0;
+  color: #4a4458;
+  font-size: 0.9rem;
+}
+
+.docs-callout code {
+  background: rgba(255, 255, 255, 0.62);
+}
+
+/* --- code and file trees ------------------------------------------------- */
+
+.file-tree,
+.code-block {
+  margin: 16px 0 8px;
+  padding: 20px 24px;
+  color: #e9e2f5;
+  background: #26232e;
+  border-radius: 20px;
+  overflow-x: auto;
+}
+
+.file-tree code,
+.code-block code {
+  padding: 0;
+  color: inherit;
+  background: none;
+  font-family: "SFMono-Regular", "Cascadia Mono", "Consolas", monospace;
+  font-size: 0.82rem;
+  line-height: 1.85;
+  white-space: pre;
+}
+
+/* --- tag row ------------------------------------------------------------- */
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 16px 0 8px;
+}
+
+.tag {
+  padding: 5px 12px;
+  color: var(--md-sys-color-on-primary-container);
+  background: var(--md-sys-color-primary-container);
+  border-radius: 999px;
+  font-family: "SFMono-Regular", "Cascadia Mono", "Consolas", monospace;
+  font-size: 0.78rem;
+}
+
+/* --- decisions ----------------------------------------------------------- */
+
+.decision-list {
+  margin: 24px 0 0;
+}
+
+.decision-list dt {
+  margin-top: 22px;
+  color: var(--md-sys-color-on-surface);
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.decision-list dt:first-child {
+  margin-top: 0;
+}
+
+.decision-list dd {
+  max-width: 72ch;
+  margin: 7px 0 0;
+  padding-left: 16px;
+  color: var(--md-sys-color-on-surface-variant);
+  border-left: 3px solid var(--md-sys-color-primary-container);
+  font-size: 0.9rem;
+  line-height: 1.8;
+}
+
+/* --- limits -------------------------------------------------------------- */
+
+.limit-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin-top: 24px;
+}
+
+.limit-card {
+  padding: 20px 22px;
+  background: var(--md-sys-color-surface-container-low);
+  border-radius: 20px;
+}
+
+.limit-card--warn {
+  background: var(--step-peach);
+}
+
+.limit-card b {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--md-sys-color-on-surface);
+  font-size: 0.95rem;
+}
+
+.limit-card p {
+  margin: 0;
+  font-size: 0.87rem;
+  line-height: 1.75;
+}
+
+.limit-card--warn p {
+  color: #5a3a2c;
+}
+
+.docs-source {
+  margin-top: 44px;
+  padding-top: 22px;
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.84rem;
+  line-height: 1.75;
+}
+
+/* --- narrow screens ------------------------------------------------------ */
+
+@media (max-width: 900px) {
+  .docs-layout {
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .docs-nav {
+    position: static;
+    padding: 18px;
+  }
+
+  .docs-nav ol {
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .docs-nav a {
+    white-space: nowrap;
+  }
+
+  .docs-hero {
+    padding-block: 36px 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .docs-nav a {
+    transition: none;
+  }
+}

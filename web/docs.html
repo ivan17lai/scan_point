@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="description" content="ScanPoint 系統架構文件：模組關係、刷卡資料流、檔案系統配置、紀錄格式與成績計算規則">
+    <meta name="theme-color" content="#fef7ff">
+    <title>系統架構｜ScanPoint</title>
+    <script src="cache-refresh.js?v=__SCANPOINT_VERSION__"></script>
+    <link rel="stylesheet" href="styles.css?v=__SCANPOINT_VERSION__">
+    <link rel="stylesheet" href="docs.css?v=__SCANPOINT_VERSION__">
+  </head>
+  <body class="docs-page">
+    <header class="site-header">
+      <div class="shell topbar">
+        <a class="brand" href="index.html" aria-label="返回 ScanPoint 首頁">
+          <span class="brand__mark" aria-hidden="true">S</span>
+          <span>ScanPoint</span>
+        </a>
+        <nav class="topbar__nav" aria-label="網站導覽">
+          <a href="index.html">首頁</a>
+          <a href="index.html#station">系統介紹</a>
+          <a href="deploy.html">部署教學</a>
+          <a href="score.html">成績計算</a>
+          <a href="docs.html" aria-current="page">系統架構</a>
+        </nav>
+        <a class="topbar__action" href="index.html">
+          回到首頁 <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    </header>
+
+    <main id="docs-top" class="docs-main">
+      <section class="shell docs-hero">
+        <p class="eyebrow">ARCHITECTURE · DATA · FILE LAYOUT</p>
+        <h1>ScanPoint 是怎麼組起來的</h1>
+        <p class="docs-hero__lead">
+          這份文件寫給要維護、除錯或改寫 ScanPoint 的人。它描述三個模組怎麼分工、
+          一次刷卡從讀卡機到名次之間經過哪些地方、每個檔案放在哪裡又存了什麼，
+          以及成績實際上是照什麼規則算出來的。
+        </p>
+        <div class="docs-hero__facts">
+          <div>
+            <b>離線優先</b>
+            <span>站點不需要網路就能完整記錄，雲端只是選用的匯總層</span>
+          </div>
+          <div>
+            <b>三份副本</b>
+            <span>每一筆刷卡同時寫進主檔、常駐存檔與（選用的）隨身碟</span>
+          </div>
+          <div>
+            <b>純文字</b>
+            <span>沒有資料庫。JSONL 逐行附加，斷電最多只損失最後一行</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="shell docs-layout">
+        <nav class="docs-nav" aria-label="文件章節">
+          <p class="docs-nav__title">目錄</p>
+          <ol>
+            <li><a href="#overview">1 · 三個模組</a></li>
+            <li><a href="#lifecycle">2 · 一次刷卡的生命週期</a></li>
+            <li><a href="#files">3 · 檔案系統</a></li>
+            <li><a href="#formats">4 · 紀錄格式</a></li>
+            <li><a href="#cloud">5 · 雲端試算表結構</a></li>
+            <li><a href="#scoring">6 · 成績計算規則</a></li>
+            <li><a href="#decisions">7 · 設計取捨</a></li>
+            <li><a href="#limits">8 · 現場注意事項</a></li>
+          </ol>
+        </nav>
+
+        <article class="docs-article">
+          <!-- ========================= 1 ========================= -->
+          <section class="docs-section" id="overview" aria-labelledby="overview-title">
+            <p class="docs-kicker">01</p>
+            <h2 id="overview-title">三個模組</h2>
+            <p>
+              專案分成三個資料夾，彼此只透過<strong>檔案</strong>與<strong>一個 HTTP 端點</strong>往來，
+              沒有共用的執行期狀態。任何一個模組停擺，其他兩個仍然能各自運作。
+            </p>
+
+            <div class="arch-figure">
+              <svg class="arch-diagram" viewBox="0 0 920 470" role="img"
+                aria-labelledby="arch-title arch-desc">
+                <title id="arch-title">ScanPoint 系統架構圖</title>
+                <desc id="arch-desc">
+                  上層是多台離線掃描站，各自寫入本機紀錄；中層分成本機檔案匯出與選用的
+                  Google 試算表；兩者都匯流到最下層的瀏覽器成績計算頁。
+                </desc>
+                <defs>
+                  <marker id="arch-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M0 0 10 5 0 10Z" fill="#79747e"/>
+                  </marker>
+                </defs>
+
+                <text class="arch-band" x="30" y="26">掃描站 · 每個檢查點一台 · 完全離線</text>
+
+                <g class="arch-node arch-node--station">
+                  <rect x="30" y="44" width="250" height="84" rx="20"/>
+                  <text class="arch-node__title" x="155" y="76">CP01 掃描站</text>
+                  <text class="arch-node__sub" x="155" y="100">Flutter / Windows kiosk</text>
+                </g>
+                <g class="arch-node arch-node--station">
+                  <rect x="335" y="44" width="250" height="84" rx="20"/>
+                  <text class="arch-node__title" x="460" y="76">CP02 掃描站</text>
+                  <text class="arch-node__sub" x="460" y="100">NFC 讀卡機模擬鍵盤</text>
+                </g>
+                <g class="arch-node arch-node--station">
+                  <rect x="640" y="44" width="250" height="84" rx="20"/>
+                  <text class="arch-node__title" x="765" y="76">CP03 掃描站</text>
+                  <text class="arch-node__sub" x="765" y="100">本機三份副本</text>
+                </g>
+
+                <path class="arch-line" d="M155 128V176M460 128V176M765 128V176"/>
+                <path class="arch-line" d="M155 176H765"/>
+                <path class="arch-line" d="M250 176V206" marker-end="url(#arch-arrow)"/>
+                <path class="arch-line" d="M670 176V206" marker-end="url(#arch-arrow)"/>
+                <text class="arch-edge" x="262" y="199">匯出 / 隨身碟</text>
+                <text class="arch-edge" x="682" y="199">上傳（選用）</text>
+
+                <g class="arch-node arch-node--relay">
+                  <rect x="100" y="214" width="300" height="84" rx="20"/>
+                  <text class="arch-node__title" x="250" y="246">本機紀錄檔</text>
+                  <text class="arch-node__sub" x="250" y="270">scans.jsonl · scans-YYYY-MM-DD.csv</text>
+                </g>
+                <g class="arch-node arch-node--relay arch-node--optional">
+                  <rect x="520" y="214" width="300" height="84" rx="20"/>
+                  <text class="arch-node__title" x="670" y="246">Google 試算表</text>
+                  <text class="arch-node__sub" x="670" y="270">Apps Script · doPost / doGet</text>
+                </g>
+
+                <path class="arch-line" d="M250 298V330Q250 344 268 344H460"/>
+                <path class="arch-line" d="M670 298V330Q670 344 652 344H460"/>
+                <path class="arch-line" d="M460 344V358" marker-end="url(#arch-arrow)"/>
+
+                <g class="arch-node arch-node--sink">
+                  <rect x="260" y="360" width="400" height="84" rx="20"/>
+                  <text class="arch-node__title" x="460" y="392">成績計算頁 score.html</text>
+                  <text class="arch-node__sub" x="460" y="416">純瀏覽器運算 · 不上傳任何資料</text>
+                </g>
+              </svg>
+            </div>
+
+            <div class="docs-table-scroll">
+              <table class="docs-table">
+                <caption class="docs-table__caption">模組職責</caption>
+                <thead>
+                  <tr><th scope="col">資料夾</th><th scope="col">是什麼</th><th scope="col">負責</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row"><code>scanpoint/</code></th>
+                    <td>Flutter 桌面應用程式（Windows kiosk）</td>
+                    <td>解碼讀卡機訊框、判定重複、寫入三份紀錄、匯出與上傳</td>
+                  </tr>
+                  <tr>
+                    <th scope="row"><code>web/</code></th>
+                    <td>零建置靜態網站，由 GitHub Pages 發佈</td>
+                    <td>部署教學與金鑰產生、成績計算頁、Apps Script 原始碼</td>
+                  </tr>
+                  <tr>
+                    <th scope="row"><code>score_center/</code></th>
+                    <td>保留位置</td>
+                    <td>目前計分規則實作在 <code>web/score-engine.js</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="docs-callout">
+              <b>為什麼站點之間不互相通訊</b>
+              <p>
+                檢查點通常在收訊不穩的地方，而且經常無人看管。任何「站點必須連得上某個東西才能記錄」
+                的設計，都會把一次網路中斷變成一整段時間的成績遺失。所以站點只對本機磁碟負責，
+                匯總是事後的、可以重試的動作。
+              </p>
+            </div>
+          </section>
+
+          <!-- ========================= 2 ========================= -->
+          <section class="docs-section" id="lifecycle" aria-labelledby="lifecycle-title">
+            <p class="docs-kicker">02</p>
+            <h2 id="lifecycle-title">一次刷卡的生命週期</h2>
+            <p>
+              讀卡機被設定成鍵盤模擬（keyboard wedge），刷卡時它就像有人飛快打字一樣送出按鍵。
+              從那一刻到畫面亮起綠燈，中間經過六個階段。
+            </p>
+
+            <ol class="lifecycle">
+              <li>
+                <b>訊框組裝</b>
+                <p>
+                  讀卡機送出 <code>;&lt;卡號&gt;?</code>。<code>ScanDecoder</code> 依<strong>實體按鍵位置</strong>判讀，
+                  而不是系統認為被打出來的字元——<code>;</code> 是分號鍵未按 Shift，<code>?</code> 是斜線鍵加 Shift。
+                  這就是為什麼注音輸入法、非美式鍵盤配置與 CapsLock 都不會弄壞它。
+                </p>
+              </li>
+              <li>
+                <b>時間護欄</b>
+                <p>
+                  兩個按鍵之間超過 <code>300ms</code> 判定中斷（<code>E-01</code>），
+                  從 <code>;</code> 到 <code>?</code> 超過 <code>1500ms</code> 判定逾時（<code>E-02</code>）。
+                  刷卡機一格約 5–30ms，人手打字不可能通過這道門檻。
+                </p>
+              </li>
+              <li>
+                <b>正規化與驗證</b>
+                <p>
+                  卡號一律轉大寫，並必須符合 <code>^[A-Za-z0-9\-_.:]{1,64}$</code>，
+                  否則丟出 <code>E-03</code>。原始字串會另外保留在 <code>raw</code> 欄位，供事後診斷設定錯誤的讀卡機。
+                </p>
+              </li>
+              <li>
+                <b>重複判定</b>
+                <p>
+                  以 <code>站點編號|卡號</code> 為鍵查詢本機的首次出現時間。
+                  已經出現過的，仍然<strong>會被寫入</strong>並標上 <code>duplicate_of</code>，
+                  但不會增加該站的有效計數——「這個人刷了兩次」本身就是值得保留的證據。
+                </p>
+              </li>
+              <li>
+                <b>三份寫入</b>
+                <p>
+                  同一行 JSON 依序附加到主檔、常駐存檔與（若有設定）隨身碟，每份都 flush 到磁碟，
+                  同時各自維護一份當日 CSV。<strong>只要有一份成功就算記錄成功</strong>：
+                  不能因為某個備份位置壞掉，就把選手趕回去重刷。
+                </p>
+              </li>
+              <li>
+                <b>回饋與歸位</b>
+                <p>
+                  成功／重複／錯誤各有不同提示音與畫面，分別停留 2.5 / 3.0 / 3.5 秒後回到待機。
+                  「掃描中」畫面有 400ms 的最短顯示時間，否則它會一閃而過像是當機。
+                  整個過程另外寫一筆到操作日誌。
+                </p>
+              </li>
+            </ol>
+
+            <div class="docs-callout docs-callout--quiet">
+              <b>兩份日誌，各司其職</b>
+              <p>
+                <code>scans.jsonl</code> 是<strong>結果</strong>——會變成某個人成績的那些行，乾淨到可以直接丟進試算表。
+                <code>events.jsonl</code> 是<strong>過程</strong>——失敗的讀取、PIN 嘗試、設定變更與時間點。
+                活動結束後最常被問的問題是「為什麼這個人少一個點」，而回答它需要的是失敗紀錄與設定變更，不只是成功紀錄。
+              </p>
+            </div>
+          </section>
+
+          <!-- ========================= 3 ========================= -->
+          <section class="docs-section" id="files" aria-labelledby="files-title">
+            <p class="docs-kicker">03</p>
+            <h2 id="files-title">檔案系統</h2>
+            <p>
+              站點沒有資料庫。所有東西都是純文字檔，分佈在三個位置——
+              一個主要位置與兩個備援位置。
+            </p>
+
+            <h3 class="docs-h3">主檔（執行檔旁）</h3>
+            <p>
+              程式啟動時<strong>只從這裡讀取</strong>紀錄。設定檔也放在這裡。
+            </p>
+            <pre class="file-tree"><code>scan_point.exe 所在資料夾/
+├── scan_point.exe
+├── station.json            站點編號、名稱、管理 PIN、額外備份路徑
+├── cloud.config            SPREADSHEET_ID / UPLOAD_URL / UPLOAD_KEY
+├── id-mapping.json         卡號 → 顯示名稱（選用）
+└── data/
+    ├── scans.jsonl         刷卡紀錄，逐行附加
+    ├── scans-2026-08-10.csv    同樣內容的當日 CSV
+    ├── events.jsonl        操作日誌，逐行附加
+    └── system_operations.csv   同樣內容的 CSV</code></pre>
+
+            <h3 class="docs-h3">常駐存檔（AppData）</h3>
+            <p>
+              由作業系統決定的應用程式支援資料夾底下的 <code>data/</code>，內容與主檔相同。
+              它<strong>只寫不讀</strong>：程式永遠不會自動從這裡救回資料。
+              這是刻意的——自動回填會讓一份舊資料在無人察覺的情況下改變現場狀態，
+              需要它的時候請手動複製。
+            </p>
+
+            <h3 class="docs-h3">額外備份（選用，通常是隨身碟）</h3>
+            <p>
+              在管理面板選一個資料夾就會啟用。它是<strong>附加</strong>而不是轉移——
+              原本的兩份照常寫入，所以拔掉隨身碟不會讓站點比沒插的時候更糟。
+            </p>
+            <pre class="file-tree"><code>&lt;選定的資料夾&gt;/scan_point/&lt;站點編號&gt;/
+├── scans.jsonl
+├── scans-2026-08-10.csv
+├── events.jsonl
+└── system_operations.csv</code></pre>
+            <p>
+              路徑按站點編號分層，因為一支隨身碟很可能會收集好幾台機器。
+              少了這一層，第二台插上去就會覆蓋第一台的紀錄，而且是無聲的全毀。
+              活動中途才插上隨身碟時，程式會把<strong>整份</strong>既有紀錄複製過去，
+              所以拿到的是整場活動，不是後半場。
+            </p>
+
+            <div class="docs-table-scroll">
+              <table class="docs-table">
+                <caption class="docs-table__caption">設定檔的讀取來源</caption>
+                <thead>
+                  <tr><th scope="col">檔案</th><th scope="col">從哪裡讀</th><th scope="col">為什麼</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row"><code>station.json</code></th>
+                    <td>只認執行檔旁邊那一份</td>
+                    <td>放在文件夾或 AppData 的舊副本，絕不能改變一個剛解壓縮出來的新站點的身分</td>
+                  </tr>
+                  <tr>
+                    <th scope="row"><code>cloud.config</code></th>
+                    <td>執行檔旁 → 文件夾 <code>OrienteeringSystem/</code> → AppData，取第一個找到的</td>
+                    <td>雲端金鑰是整場活動共用的，允許放在使用者資料夾集中管理</td>
+                  </tr>
+                  <tr>
+                    <th scope="row"><code>id-mapping.json</code></th>
+                    <td>只認執行檔旁邊那一份</td>
+                    <td>只影響畫面顯示，不參與重複判定、匯出、上傳或計分</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- ========================= 4 ========================= -->
+          <section class="docs-section" id="formats" aria-labelledby="formats-title">
+            <p class="docs-kicker">04</p>
+            <h2 id="formats-title">紀錄格式</h2>
+
+            <h3 class="docs-h3">刷卡紀錄 <code>scans.jsonl</code></h3>
+            <p>一行一筆，逐行附加。斷電最多只會弄壞最後一行，之前的內容完好。</p>
+            <pre class="code-block"><code>{"record_id":"scan-3f2a9c1d4e5b6078","seq":42,"card":"04A1B2C3",
+ "at_local":"2026-08-10T09:14:05.317","at_utc":"2026-08-10T01:14:05.317Z",
+ "station_id":"CP02","station_name":"水源地","term":"questionMark",
+ "raw":"04a1b2c3"}</code></pre>
+
+            <div class="docs-table-scroll">
+              <table class="docs-table">
+                <thead>
+                  <tr><th scope="col">欄位</th><th scope="col">說明</th></tr>
+                </thead>
+                <tbody>
+                  <tr><th scope="row"><code>record_id</code></th><td>由站點編號、序號、卡號與 UTC 時間推導的穩定識別碼，重複上傳時用來去重</td></tr>
+                  <tr><th scope="row"><code>seq</code></th><td>該機器的遞增序號</td></tr>
+                  <tr><th scope="row"><code>card</code></th><td>正規化後的卡號（一律大寫）</td></tr>
+                  <tr><th scope="row"><code>at_local</code> / <code>at_utc</code></th><td>刷卡時間。計分一律採用 <code>at_utc</code></td></tr>
+                  <tr><th scope="row"><code>station_id</code> / <code>station_name</code></th><td>寫入當下的站點身分</td></tr>
+                  <tr><th scope="row"><code>term</code></th><td>訊框結尾方式：<code>questionMark</code> 或 <code>enterKey</code></td></tr>
+                  <tr><th scope="row"><code>raw</code></th><td>正規化前、原封不動的字串</td></tr>
+                  <tr><th scope="row"><code>duplicate_of</code></th><td>只有重複刷卡才有，值是這張卡在這一站的首次出現時間</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 class="docs-h3">當日 CSV <code>scans-YYYY-MM-DD.csv</code></h3>
+            <p>與 JSONL 同步寫入，方便直接丟進試算表。表頭固定為：</p>
+            <pre class="code-block"><code>seq,card_id,at_local,at_utc,station_id,station_name,terminator,duplicate_of</code></pre>
+
+            <h3 class="docs-h3">操作日誌 <code>events.jsonl</code></h3>
+            <p>
+              記錄程式做了什麼，而不是選手做了什麼。事件類型是封閉集合，
+              可以在活動後直接過濾而不用猜字串：
+            </p>
+            <p class="tag-row">
+              <span class="tag">app_start</span><span class="tag">app_exit</span>
+              <span class="tag">scan_ok</span><span class="tag">scan_duplicate</span>
+              <span class="tag">scan_fail</span><span class="tag">admin_unlock</span>
+              <span class="tag">admin_pin_rejected</span><span class="tag">admin_exit</span>
+              <span class="tag">config_change</span><span class="tag">storage_change</span>
+              <span class="tag">id_mapping_change</span><span class="tag">export</span>
+              <span class="tag">upload</span><span class="tag">write_error</span>
+            </p>
+            <p>
+              <code>pin</code>、<code>upload_token</code>、<code>UPLOAD_KEY</code> 這幾個欄位的值會被替換成
+              <code>&lt;已隱藏&gt;</code>——保留「這個欄位被改過」這件事，但不讓機密隨著隨身碟或共用試算表流出去。
+              寫入日誌的動作永遠不會拋出例外：因為日記寫不進去而停止記錄刷卡，會是很荒謬的失分方式。
+            </p>
+          </section>
+
+          <!-- ========================= 5 ========================= -->
+          <section class="docs-section" id="cloud" aria-labelledby="cloud-title">
+            <p class="docs-kicker">05</p>
+            <h2 id="cloud-title">雲端試算表結構</h2>
+            <p>
+              雲端這一層完全是選用的。啟用後，Apps Script 會在試算表裡維護四個分頁。
+              寫入端 <code>doPost</code> 以 <code>UPLOAD_KEY</code> 驗證，
+              讀取端 <code>doGet?action=scores</code> 以 <code>READ_KEY</code> 驗證，兩者是分開的金鑰。
+            </p>
+
+            <div class="docs-table-scroll">
+              <table class="docs-table">
+                <thead>
+                  <tr><th scope="col">分頁</th><th scope="col">內容</th><th scope="col">去重依據</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row"><code>scans</code></th>
+                    <td>所有站點的刷卡紀錄，成績計算頁讀的就是這個分頁</td>
+                    <td><code>record_id</code></td>
+                  </tr>
+                  <tr>
+                    <th scope="row"><code>operations</code></th>
+                    <td>所有站點的操作日誌</td>
+                    <td><code>event_id</code></td>
+                  </tr>
+                  <tr>
+                    <th scope="row"><code>uploads</code></th>
+                    <td>每次上傳的收據：送出幾筆、接受幾筆、略過幾筆</td>
+                    <td>不去重，逐筆附加</td>
+                  </tr>
+                  <tr>
+                    <th scope="row"><code>summary</code></th>
+                    <td>每個站點一列的統計</td>
+                    <td>依 <code>station_id</code> 就地更新</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p>
+              紀錄分頁的欄位會被設成純文字格式。少了這一步，Google 試算表會重新解讀寫進去的值：
+              ISO 時間戳變成試算表語系的日期，帶前導零的卡號變成數字而不再對得上原本那張卡。
+              兩種損壞都是無聲的，而且都要等到成績已經算錯了才會浮現。
+            </p>
+
+            <div class="docs-callout docs-callout--quiet">
+              <b>上傳是可以重按的</b>
+              <p>
+                伺服器端以 <code>record_id</code> 去重，所以重複送出同一批紀錄不會產生重複列，
+                只會回報「略過幾筆」。網路不穩時直接再按一次即可。
+              </p>
+            </div>
+          </section>
+
+          <!-- ========================= 6 ========================= -->
+          <section class="docs-section" id="scoring" aria-labelledby="scoring-title">
+            <p class="docs-kicker">06</p>
+            <h2 id="scoring-title">成績計算規則</h2>
+            <p>
+              計分完全在瀏覽器裡完成（<code>web/score-engine.js</code>），資料不會被送到任何地方。
+              流程固定是這六步：
+            </p>
+
+            <ol class="lifecycle lifecycle--compact">
+              <li>
+                <b>去重</b>
+                <p>
+                  以 <code>record_id</code> 為準；沒有 <code>record_id</code> 的來源退回
+                  <code>卡號 + 站點 + 時間戳</code> 組合。被標記 <code>duplicate_of</code> 的紀錄整筆排除。
+                </p>
+              </li>
+              <li>
+                <b>依卡號分組並按時間排序</b>
+                <p>同一張卡的所有紀錄依 <code>at_utc</code> 由早到晚排列。</p>
+              </li>
+              <li>
+                <b>依站點順序比對</b>
+                <p>
+                  用一個<strong>只能往前走</strong>的游標，依設定的站點順序逐一尋找。
+                  找不到就停在那裡——所以判定「有沒有通過」的實際依據是<strong>時間戳的先後</strong>，
+                  不只是「有沒有刷過」。
+                </p>
+              </li>
+              <li>
+                <b>判定完賽</b>
+                <p>比對到的站數等於設定站數才算完賽，否則記為 <code>已完成 / 總數</code>。</p>
+              </li>
+              <li>
+                <b>計算耗時</b>
+                <p>完賽者的成績 = 最後一站時間 − 第一站時間。未完賽者沒有成績。</p>
+              </li>
+              <li>
+                <b>排序與名次</b>
+                <p>
+                  完賽者排在前面，依耗時由小到大；耗時相同則<strong>並列同名次</strong>，
+                  下一個不同耗時的人接續實際位次。未完賽者排在後面，
+                  依已完成站數多寡、再依起點時間先後排列，且不給名次。
+                </p>
+              </li>
+            </ol>
+
+            <div class="docs-callout">
+              <b>站點順序必須是實際路線</b>
+              <p>
+                成績頁預設會把資料中出現過的所有站點依編號自然排序填進去，那<strong>不一定是活動路線</strong>。
+                如果資料裡混進測試卡或測試站的紀錄，它也會被當成必經站點，導致全員判定未完賽。
+                按下計算之前請確認站點順序列與實際路線一致。
+              </p>
+            </div>
+          </section>
+
+          <!-- ========================= 7 ========================= -->
+          <section class="docs-section" id="decisions" aria-labelledby="decisions-title">
+            <p class="docs-kicker">07</p>
+            <h2 id="decisions-title">設計取捨</h2>
+            <p>幾個看起來像缺點、但其實是刻意選擇的地方。</p>
+
+            <dl class="decision-list">
+              <dt>為什麼不用資料庫</dt>
+              <dd>
+                無人站最實際的故障是沒電或有人拔插頭。逐行 flush 的純文字檔在這種情況下最多退化成
+                「最後一行可能不完整」，而寫到一半的資料庫頁面可能帶走整個檔案。
+              </dd>
+
+              <dt>為什麼重複刷卡也要寫進去</dt>
+              <dd>
+                刪掉它等於刪掉證據。重複紀錄會被標記、不列入計數、計分時排除，
+                但它留在紀錄裡，讓事後可以回答「這個人到底刷了幾次、什麼時候」。
+              </dd>
+
+              <dt>為什麼常駐存檔不會自動救援</dt>
+              <dd>
+                自動回填意味著一份舊資料可以在沒人察覺的情況下改變現場狀態。
+                備援的價值在於它是一份可以被人檢查後再決定怎麼用的副本，而不是一個會自己作主的機制。
+              </dd>
+
+              <dt>為什麼 ID 對照表只影響顯示</dt>
+              <dd>
+                對照表刻意放在紀錄結構之外。改一個顯示名稱不應該有任何機會去改變重複判定、
+                匯出內容、上傳內容或計分結果。紀錄裡永遠是原始卡號。
+              </dd>
+
+              <dt>為什麼解碼器不碰輸入框</dt>
+              <dd>
+                只要沒有任何文字輸入元件取得焦點，輸入法就不會被啟動，
+                執行中的注音輸入法也就無法攔截、緩衝或改寫讀卡機送出的按鍵。
+              </dd>
+            </dl>
+          </section>
+
+          <!-- ========================= 8 ========================= -->
+          <section class="docs-section" id="limits" aria-labelledby="limits-title">
+            <p class="docs-kicker">08</p>
+            <h2 id="limits-title">現場注意事項</h2>
+
+            <div class="limit-grid">
+              <div class="limit-card limit-card--warn">
+                <b>各站時鐘必須一致</b>
+                <p>
+                  成績是跨站相減出來的，而且完賽判定依賴時間戳的先後。
+                  某一站的時鐘慢了幾分鐘，該站的紀錄會排到前一站前面，
+                  比對就再也找不到它——選手三個點都刷了，卻顯示未完賽。
+                  <strong>活動前請逐台校時。</strong>
+                </p>
+              </div>
+              <div class="limit-card">
+                <b>站點編號會進到路徑與計分欄位</b>
+                <p>
+                  它會變成隨身碟上的資料夾名稱，也會被貼回成績頁的站點順序欄位，
+                  而那個欄位以逗號、分號與箭號分隔。建議只用英數字與 <code>-</code> <code>_</code>。
+                </p>
+              </div>
+              <div class="limit-card">
+                <b>對照表的卡號要對得上</b>
+                <p>
+                  紀錄裡的卡號一律是大寫。對照表若使用小寫十六進位，會對不上而顯示原始 ID。
+                </p>
+              </div>
+              <div class="limit-card">
+                <b>管理 PIN 預設值是公開的</b>
+                <p>
+                  預設 PIN 寫在開源程式碼裡，本身不保護任何東西。首次設定站點時務必改掉。
+                </p>
+              </div>
+              <div class="limit-card">
+                <b>同一批資料不要重複載入</b>
+                <p>
+                  成績頁可以同時吃 JSONL 與 CSV。把同一個站的兩種檔案一起拖進去，
+                  掃描筆數統計會翻倍。擇一即可。
+                </p>
+              </div>
+              <div class="limit-card">
+                <b>折返路線目前不支援</b>
+                <p>
+                  同一個站點在路線中只能出現一次；同一張卡在同一站的第二次刷卡會被視為重複。
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <p class="docs-source">
+            這份文件描述的是 <code>scanpoint/lib/src/</code> 與 <code>web/</code> 目前的實作。
+            改動行為時請一併更新這裡。
+          </p>
+        </article>
+      </div>
+    </main>
+
+    <footer class="shell footer">
+      <div class="brand brand--footer">
+        <span class="brand__mark" aria-hidden="true">S</span>
+        <span>ScanPoint</span>
+      </div>
+      <p>離線現場刷卡系統 · GitHub Pages</p>
+    </footer>
+
+  </body>
+</html>
