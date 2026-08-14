@@ -11,6 +11,7 @@ import '../model/scan_record.dart';
 import '../platform/kiosk_lock.dart';
 import '../storage/event_log.dart';
 import '../upload/apps_script_uploader.dart';
+import '../upload/batch_upload.dart';
 import 'm3e/expressive_shape.dart';
 
 /// Operator surface behind the PIN: station identity, counts, export, upload,
@@ -157,32 +158,33 @@ class _AdminScreenState extends State<AdminScreen> {
       _status = '上傳中…';
     });
     try {
-      final token = widget.controller.config.uploadToken.trim();
-      final now = DateTime.now();
       final operationHistory = await widget.controller.events.history();
       final client = http.Client();
-      late final AppsScriptUploadResult result;
+      late final BatchUploadResult result;
       try {
-        result = await AppsScriptUploader(client)
-            .upload(
-              endpoint: Uri.parse(url),
-              payload: {
-                'schema_version': 1,
-                'api_key': token,
-                'spreadsheet_id': cloudConfig.spreadsheetId.trim(),
-                'batch_id':
-                    '${widget.controller.config.stationId}-'
-                    '${now.toUtc().microsecondsSinceEpoch}',
-                'station_id': widget.controller.config.stationId,
-                'station_name': widget.controller.config.stationName,
-                'uploaded_at': now.toIso8601String(),
-                'scans': widget.controller.store.toJsonList(),
-                'operations': operationHistory.reversed
-                    .map((event) => event.toJson())
-                    .toList(),
-              },
-            )
-            .timeout(const Duration(seconds: 30));
+        result = await BatchUpload(
+          uploader: AppsScriptUploader(client),
+          cursors: widget.controller.uploadCursors,
+        ).run(
+          endpoint: Uri.parse(url),
+          apiKey: cloudConfig.uploadToken.trim(),
+          spreadsheetId: cloudConfig.spreadsheetId.trim(),
+          stationId: cloudConfig.stationId,
+          stationName: cloudConfig.stationName,
+          scans: widget.controller.store.toJsonList(),
+          // `history` is newest first; the cursor counts in written order.
+          operations: operationHistory.reversed
+              .map((event) => event.toJson())
+              .toList(),
+          onProgress: (progress) {
+            if (!mounted) return;
+            setState(
+              () => _status =
+                  '上傳中… ${progress.sentScans}/${progress.scansToSend} 筆紀錄'
+                  '(第 ${progress.batches} 批)',
+            );
+          },
+        );
       } finally {
         client.close();
       }
@@ -194,15 +196,15 @@ class _AdminScreenState extends State<AdminScreen> {
           'host': Uri.parse(url).host,
           'status': result.statusCode,
           'records': widget.controller.store.totalLines,
+          'sent_scans': result.sentScans,
+          'sent_operations': result.sentOperations,
+          'batches': result.batches,
           'accepted': result.accepted,
           'duplicates': result.duplicates,
+          'error': ?result.error,
         },
       );
-      setState(
-        () => _status = result.ok
-            ? '上傳成功:${result.accepted} 筆新增、${result.duplicates} 筆略過'
-            : '上傳失敗:${result.error ?? 'HTTP ${result.statusCode}'}',
-      );
+      setState(() => _status = _uploadStatus(result));
     } catch (e) {
       await widget.controller.events.record(
         EventType.uploadRun,
@@ -213,6 +215,21 @@ class _AdminScreenState extends State<AdminScreen> {
     } finally {
       setState(() => _busy = false);
     }
+  }
+
+  /// A partial run is deliberately not reported as a failure. Its batches did
+  /// reach the sheet and were recorded, so the operator needs to know pressing
+  /// upload again continues rather than starts over.
+  static String _uploadStatus(BatchUploadResult result) {
+    if (result.ok) {
+      if (result.nothingToSend) return '雲端已是最新,沒有新紀錄需要上傳';
+      return '上傳成功:${result.accepted} 筆新增、${result.duplicates} 筆略過'
+          '(送出 ${result.sentScans} 筆紀錄,分 ${result.batches} 批)';
+    }
+    final reason = result.error ?? 'HTTP ${result.statusCode}';
+    if (!result.isPartial) return '上傳失敗:$reason';
+    return '上傳中斷:$reason。已完成 ${result.sentScans}/${result.scansToSend} '
+        '筆紀錄並記住進度,再按一次可從中斷處繼續';
   }
 
   Future<void> _pickFolder() async {

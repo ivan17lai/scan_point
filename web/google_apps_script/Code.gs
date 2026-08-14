@@ -258,16 +258,27 @@ function writeUpload(spreadsheetId, body, scans, operations) {
   });
 }
 
+// The summary describes a station, not a request. A station now sends only
+// what this sheet has not confirmed yet, so the batch in hand is a slice and
+// counting it would make the summary report whichever slice arrived last. The
+// station therefore states its own totals, which it is the only party that
+// knows. A payload without them came from a station still sending its whole
+// log every time, where the batch is the total.
 function upsertSummary(sheet, body, scans, operations, receivedAt) {
   const stationId = cleanText(body.station_id);
-  const duplicateScans = scans.filter((record) => record.duplicate_of).length;
+  const totals = body.station_totals || {};
+  const totalScans = numberOr(totals.scans, scans.length);
+  const duplicateScans = numberOr(
+    totals.duplicate_scans,
+    scans.filter((record) => record.duplicate_of).length,
+  );
   const row = [
     stationId,
     cleanText(body.station_name),
-    scans.length - duplicateScans,
+    totalScans - duplicateScans,
     duplicateScans,
-    scans.length,
-    operations.length,
+    totalScans,
+    numberOr(totals.operations, operations.length),
     receivedAt,
   ];
 
@@ -306,6 +317,11 @@ function ensureSheet(spreadsheet, name, headers, asText) {
     sheet.autoResizeColumns(1, headers.length);
   }
   return sheet;
+}
+
+function numberOr(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : fallback;
 }
 
 function readIds(sheet) {

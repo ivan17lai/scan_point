@@ -14,6 +14,7 @@ import 'storage/config_store.dart';
 import 'storage/event_log.dart';
 import 'storage/id_mapping_store.dart';
 import 'storage/scan_store.dart';
+import 'upload/upload_cursor.dart';
 
 /// What the runner-facing screen is showing.
 enum KioskState { idle, scanning, success, duplicate, error }
@@ -88,6 +89,14 @@ class AppController extends ChangeNotifier {
 
   int get recordedCount => _store.countFor(_config.stationId);
   ScanStore get store => _store;
+
+  /// How much of the log the spreadsheet has already confirmed, so an upload
+  /// resumes rather than restarting. Kept beside the log it describes, and
+  /// resolved per access because the store is reopened when the operator
+  /// changes the extra backup folder.
+  UploadCursorStore get uploadCursors => UploadCursorStore(
+    File('${_store.primaryDir.path}/${UploadCursorStore.fileName}'),
+  );
   String get configSource => _configStore.loadedFrom;
 
   /// Bumped on every new frame so a slow disk write from a previous scan cannot
