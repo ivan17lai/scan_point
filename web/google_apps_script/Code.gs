@@ -222,8 +222,8 @@ function writeUpload(spreadsheetId, body, scans, operations) {
     ]);
   }
 
-  appendRows(scanSheet, scanRows);
-  appendRows(operationSheet, operationRows);
+  appendRows(scanSheet, scanRows, true);
+  appendRows(operationSheet, operationRows, true);
 
   const accepted = scanRows.length + operationRows.length;
   const duplicates = scanDuplicates + operationDuplicates;
@@ -289,6 +289,9 @@ function upsertSummary(sheet, body, scans, operations, receivedAt) {
 // that reads back in the spreadsheet's locale, and a card id with leading
 // zeros becomes a number that no longer matches the card. Both losses are
 // silent, and both only surface once the results are already wrong.
+//
+// This covers only the rows the sheet was created with — 1000 by default.
+// Everything past that is formatted by `appendRows` as it is written.
 function ensureSheet(spreadsheet, name, headers, asText) {
   const sheet =
       spreadsheet.getSheetByName(name) || spreadsheet.insertSheet(name);
@@ -319,7 +322,15 @@ function readIds(sheet) {
   );
 }
 
-function appendRows(sheet, rows) {
+// A sheet is only formatted as far as the rows that existed when it was
+// created, so an event that runs past that block starts appending into rows
+// carrying the default format — and the card id that survived the first
+// thousand scans intact comes back from the thousand-and-first as a number
+// with its leading zeros gone, splitting one runner into two. The format is
+// therefore reapplied to each appended block, and before the values are
+// written: once Sheets has coerced a value, formatting it afterwards does not
+// give the original text back.
+function appendRows(sheet, rows, asText) {
   if (!rows.length) return;
   const range = sheet.getRange(
     sheet.getLastRow() + 1,
@@ -327,6 +338,7 @@ function appendRows(sheet, rows) {
     rows.length,
     rows[0].length,
   );
+  if (asText) range.setNumberFormat('@');
   range.setValues(rows);
 }
 

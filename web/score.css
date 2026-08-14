@@ -424,6 +424,19 @@
   font-weight: 600;
 }
 
+/* An id typed into the order field that no loaded record mentions. It is kept
+   in the row, because it is genuinely part of the order being scored — it just
+   guarantees nobody completes the course, so it has to look wrong. */
+.station-chip--missing {
+  color: var(--md-sys-color-error);
+  background: rgba(186, 26, 26, 0.09);
+  box-shadow: inset 0 0 0 1px rgba(186, 26, 26, 0.38);
+}
+
+.station-chip--missing b {
+  background: var(--md-sys-color-error);
+}
+
 .station-chip--draggable {
   cursor: grab;
   user-select: none;

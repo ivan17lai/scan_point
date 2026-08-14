@@ -161,6 +161,29 @@
       );
   }
 
+  function normalizeStationOrder(value) {
+    return Array.isArray(value) ? value.filter(Boolean) : parseStationOrder(value);
+  }
+
+  // The order an operator typed, resolved against the stations the loaded data
+  // actually contains, so the page can draw exactly what it is about to score.
+  //
+  // An id no record mentions is kept and flagged rather than dropped. It is
+  // genuinely part of the order — it just guarantees nobody finishes — and
+  // quietly removing it would make the display agree with a route that is not
+  // the one being scored, which is the failure this is here to prevent.
+  function resolveStationOrder(requestedStationOrder, stations) {
+    const known = new Map(
+      (stations || []).map((station) => [station.id, station]),
+    );
+    return normalizeStationOrder(requestedStationOrder).map((id) => {
+      const station = known.get(id);
+      return station
+        ? {...station, missing: false}
+        : {id, name: "", count: 0, missing: true};
+    });
+  }
+
   function recordIdentity(record) {
     return (
       record.recordId ||
@@ -169,9 +192,7 @@
   }
 
   function scoreRecords(sourceRecords, requestedStationOrder) {
-    const stationOrder = Array.isArray(requestedStationOrder)
-      ? requestedStationOrder.filter(Boolean)
-      : parseStationOrder(requestedStationOrder);
+    const stationOrder = normalizeStationOrder(requestedStationOrder);
     const unique = new Map();
 
     for (const record of normalizeRecords(sourceRecords)) {
@@ -289,6 +310,7 @@
     parseDataText,
     parseJsonText,
     parseStationOrder,
+    resolveStationOrder,
     scoreRecords,
   };
 });

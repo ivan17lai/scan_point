@@ -184,6 +184,17 @@ function reopenDataUpload() {
   goToStep(1);
 }
 
+function stationChipLabel(stationId, index, missing) {
+  return (
+    stationId +
+    "，目前第 " +
+    (index + 1) +
+    " 站" +
+    (missing ? "；這個站點不在已載入的資料中" : "") +
+    "；可拖動或使用左右方向鍵排序"
+  );
+}
+
 function renderStationChips(
   stations,
   target = elements.stationChips,
@@ -195,7 +206,7 @@ function renderStationChips(
     if (!showEmpty) return;
     const empty = document.createElement("span");
     empty.className = "station-chip station-chip--empty";
-    empty.textContent = "載入資料後顯示站點";
+    empty.textContent = dataReady ? "尚未指定任何站點" : "載入資料後顯示站點";
     target.append(empty);
     return;
   }
@@ -206,13 +217,18 @@ function renderStationChips(
     const canReorder = target === elements.stationChips;
     chip.draggable = canReorder;
     chip.dataset.stationId = station.id;
+    if (station.missing) {
+      chip.classList.add("station-chip--missing");
+      chip.dataset.missing = "true";
+      chip.title = "這個站點不在已載入的資料中，沒有人會通過它";
+    }
     if (canReorder) {
       chip.classList.add("station-chip--draggable");
       chip.tabIndex = 0;
       chip.setAttribute("role", "listitem");
       chip.setAttribute(
         "aria-label",
-        station.id + "，目前第 " + (index + 1) + " 站；可拖動或使用左右方向鍵排序",
+        stationChipLabel(station.id, index, station.missing),
       );
     }
     const number = document.createElement("b");
@@ -238,7 +254,11 @@ function updateStationChipNumbers() {
       chip.querySelector("b").textContent = String(index + 1).padStart(2, "0");
       chip.setAttribute(
         "aria-label",
-        chip.dataset.stationId + "，目前第 " + (index + 1) + " 站；可拖動或使用左右方向鍵排序",
+        stationChipLabel(
+          chip.dataset.stationId,
+          index,
+          chip.dataset.missing === "true",
+        ),
       );
     });
 }
@@ -260,14 +280,16 @@ function commitStationChipOrder() {
   );
 }
 
+// The chips are what an operator reads back before pressing calculate, but the
+// text field is what actually gets scored. So every order the field accepts
+// has to be drawable — including a subset of the detected stations, and an id
+// that is not in the data at all. Refusing to redraw those left the chips
+// showing an order that was no longer the one being used, which is the one
+// kind of wrong an operator cannot catch by looking.
 function syncStationChipsFromInput() {
-  const ids = engine.parseStationOrder(elements.stationOrder.value);
-  if (ids.length !== detectedStations.length) return;
-  const stationById = new Map(
-    detectedStations.map((station) => [station.id, station]),
+  renderStationChips(
+    engine.resolveStationOrder(elements.stationOrder.value, detectedStations),
   );
-  if (ids.some((id) => !stationById.has(id))) return;
-  renderStationChips(ids.map((id) => stationById.get(id)));
 }
 
 function resetResults() {
@@ -676,8 +698,13 @@ elements.idMappingFile.addEventListener("change", () =>
 );
 elements.clearIdMapping.addEventListener("click", clearIdMapping);
 elements.calculate.addEventListener("click", calculateScore);
-elements.stationOrder.addEventListener("input", invalidateResults);
-elements.stationOrder.addEventListener("change", syncStationChipsFromInput);
+// `input` rather than `change`: the chips have to follow the field as it is
+// typed, not only once it loses focus, or they are stale for exactly as long
+// as the operator is looking at them.
+elements.stationOrder.addEventListener("input", () => {
+  invalidateResults();
+  syncStationChipsFromInput();
+});
 elements.stationChips.addEventListener("dragstart", (event) => {
   const chip = event.target.closest(".station-chip[data-station-id]");
   if (!chip) return;
